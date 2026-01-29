@@ -1,0 +1,26 @@
+{
+  "manifest_version": 3,
+  "name": "Spectrum Buddy",
+  "description": "View your Spectrum LMS assignment deadlines at a glance",
+  "version": "1.0.0",
+  "icons": {
+    "128": "public/icons/icon.svg"
+  },
+  "action": {
+    "default_popup": "src/popup/index.html",
+    "default_title": "Spectrum Buddy",
+    "default_icon": "public/icons/icon.svg"
+  },
+  "permissions": [
+    "storage",
+    "alarms",
+    "offscreen"
+  ],
+  "host_permissions": [
+    "https://spectrum.um.edu.my/*"
+  ],
+  "background": {
+    "service_worker": "src/background/index.js",
+    "type": "module"
+  }
+}
