@@ -2,10 +2,13 @@
 
 A Chrome Extension for viewing your UM Spectrum (Moodle LMS) assignment deadlines at a glance.
 
+<img width="401" height="460" alt="image" src="https://github.com/user-attachments/assets/d07a3d9b-b58d-4cfd-a99e-57afe60adf3f" />
+
+
 ## Features
 
 - 📅 View upcoming assignment deadlines in a clean popup UI
-- 🔴 Visual urgency indicators (red < 24h, yellow < 3 days, green > 3 days)
+- 🔴 Visual urgency indicators (red < 24h, yellow < 7 days, gray > 7 days, black = overdue)
 - 🔄 Automatic background sync every 30 minutes
 - 🔒 Uses your existing browser session (no separate login required)
 - 📱 Lightweight and fast
