@@ -4,12 +4,12 @@
   "description": "View your Spectrum LMS assignment deadlines at a glance",
   "version": "1.0.0",
   "icons": {
-    "128": "public/icons/icon.svg"
+    "128": "icons/icon.svg"
   },
   "action": {
     "default_popup": "src/popup/index.html",
     "default_title": "Spectrum Buddy",
-    "default_icon": "public/icons/icon.svg"
+    "default_icon": "icons/icon.svg"
   },
   "permissions": [
     "storage",

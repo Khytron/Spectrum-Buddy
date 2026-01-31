@@ -28,8 +28,9 @@ Spectrum Buddy is a Chrome Extension designed to help students track assignment 
 - **Background Sync:** Fetches data periodically (default: 30 mins) to update the badge icon.
 - **Urgency Indicators:**
     - 🔴 Red: < 24 hours
-    - 🟡 Yellow: < 3 days
-    - 🟢 Green: > 3 days
+    - 🟡 Yellow: < 4 days
+    - 🟢 Green: > 4 days
+    - ⚫ Gray: Overdue
 
 ## Development Notes
 - **Testing:** Load the `dist` folder as an "unpacked extension" in `chrome://extensions`.

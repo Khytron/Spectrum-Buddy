@@ -1,3 +1,4 @@
+```javascript
 import React, { useState, useEffect, useCallback } from 'react';
 
 // Urgency thresholds in milliseconds
@@ -69,14 +70,14 @@ const DOT_STYLES = {
   gray: 'bg-gray-500',
 };
 
-function DeadlineCard({ deadline, onHide, isHidden }) {
+function DeadlineCard({ deadline, onHide }) {
   const urgency = getUrgencyLevel(deadline.dueDate);
 
   return (
     <div
-      className={`group relative border-l-4 p-3 rounded-r-lg mb-2 transition-all hover:shadow-md ${URGENCY_STYLES[urgency]} ${isHidden ? 'opacity-50 grayscale' : ''}`}
+      className={`border-l-4 p-3 rounded-r-lg mb-2 flex items-start justify-between gap-3 transition-all hover:shadow-md ${URGENCY_STYLES[urgency]}`}
     >
-      <div className="flex items-start gap-2">
+      <div className="flex items-start gap-2 flex-1 min-w-0">
         <span className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${DOT_STYLES[urgency]}`} />
         <div className="flex-1 min-w-0">
           <a
@@ -86,7 +87,7 @@ function DeadlineCard({ deadline, onHide, isHidden }) {
             className="text-sm font-medium text-gray-900 hover:text-blue-600 block whitespace-normal break-words"
             title={deadline.assignmentTitle}
           >
-            {deadline.assignmentTitle} {isHidden && '(Hidden)'}
+            {deadline.assignmentTitle}
           </a>
           <p className="text-xs text-gray-600 truncate" title={deadline.courseName}>
             {deadline.courseName || 'Unknown Course'}
@@ -102,28 +103,17 @@ function DeadlineCard({ deadline, onHide, isHidden }) {
             )}
           </div>
         </div>
-        
-        {/* Hide Button */}
-        <button
-          onClick={(e) => {
-            e.preventDefault();
-            onHide(deadline.id);
-          }}
-          className="absolute top-2 right-2 p-1 text-gray-400 hover:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity bg-white/50 rounded-full"
-          title={isHidden ? "Unhide" : "Hide assignment"}
-        >
-          {isHidden ? (
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-            </svg>
-          ) : (
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.05 0 01-4.132 5.411m0 0L21 21" />
-            </svg>
-          )}
-        </button>
       </div>
+      
+      <button
+        onClick={() => onHide(deadline.id)}
+        className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded-full transition-colors flex-shrink-0"
+        title="Hide Assignment"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.243 4.243l-4.243-4.243" />
+        </svg>
+      </button>
     </div>
   );
 }
@@ -232,19 +222,18 @@ class ErrorBoundary extends React.Component {
 function AppContent() {
   const [status, setStatus] = useState('LOADING');
   const [deadlines, setDeadlines] = useState([]);
+  const [hiddenAssignments, setHiddenAssignments] = useState([]);
   const [error, setError] = useState(null);
   const [lastFetch, setLastFetch] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [hiddenIds, setHiddenIds] = useState([]);
-  const [showHidden, setShowHidden] = useState(false);
 
   const loadData = useCallback(async () => {
     const data = await chrome.storage.local.get(['status', 'deadlines', 'lastFetch', 'error', 'hiddenAssignments']);
     setStatus(data.status || 'LOADING');
     setDeadlines(data.deadlines || []);
+    setHiddenAssignments(data.hiddenAssignments || []);
     setLastFetch(data.lastFetch);
     setError(data.error);
-    setHiddenIds(data.hiddenAssignments || []);
   }, []);
 
   useEffect(() => {
@@ -254,9 +243,9 @@ function AppContent() {
     const handleStorageChange = (changes) => {
       if (changes.status) setStatus(changes.status.newValue);
       if (changes.deadlines) setDeadlines(changes.deadlines.newValue || []);
+      if (changes.hiddenAssignments) setHiddenAssignments(changes.hiddenAssignments.newValue || []);
       if (changes.lastFetch) setLastFetch(changes.lastFetch.newValue);
       if (changes.error) setError(changes.error.newValue);
-      if (changes.hiddenAssignments) setHiddenIds(changes.hiddenAssignments.newValue || []);
     };
 
     chrome.storage.onChanged.addListener(handleStorageChange);
@@ -274,28 +263,33 @@ function AppContent() {
     }
   };
 
-  const toggleHide = async (id) => {
-    let newHiddenIds;
-    if (hiddenIds.includes(id)) {
-      newHiddenIds = hiddenIds.filter(hid => hid !== id);
-    } else {
-      newHiddenIds = [...hiddenIds, id];
-    }
-    setHiddenIds(newHiddenIds);
-    await chrome.storage.local.set({ hiddenAssignments: newHiddenIds });
+  const handleHideAssignment = async (assignmentId) => {
+    const newHidden = [...new Set([...hiddenAssignments, assignmentId])];
+    setHiddenAssignments(newHidden);
+    await chrome.storage.local.set({ hiddenAssignments: newHidden });
   };
+
+  const handleShowAll = async () => {
+    setHiddenAssignments([]);
+    await chrome.storage.local.set({ hiddenAssignments: [] });
+  };
+
+  const formatLastFetch = () => {
+    if (!lastFetch) return '';
+    const date = new Date(lastFetch);
+    return `Updated ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+  };
+
+  // Filter out hidden assignments first
+  const visibleDeadlines = deadlines.filter(d => !hiddenAssignments.includes(d.id));
 
   // Categorize deadlines
   const upcoming = [];
   const overdue = [];
   const now = Date.now();
 
-  const filteredDeadlines = showHidden 
-    ? deadlines 
-    : deadlines.filter(d => !hiddenIds.includes(d.id));
-
-  filteredDeadlines.forEach((d) => {
-    if (d.isSubmitted) return; 
+  visibleDeadlines.forEach((d) => {
+    if (d.isSubmitted) return; // Skip submitted items
     const dueTime = new Date(d.dueDate).getTime();
     if (dueTime < now) {
       overdue.push(d);
@@ -304,60 +298,32 @@ function AppContent() {
     }
   });
 
-  const hiddenCount = hiddenIds.length;
-
   return (
     <div className="min-h-[400px] bg-white flex flex-col">
       {/* Header */}
       <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 py-3 sticky top-0 z-10 shadow-sm">
         <div className="flex items-center justify-between">
           <h1 className="text-lg font-bold">Spectrum Buddy</h1>
-          <div className="flex items-center gap-2">
-            {hiddenCount > 0 && (
-              <button
-                onClick={() => setShowHidden(!showHidden)}
-                className={`p-1.5 rounded-full transition-colors text-xs flex items-center gap-1 ${showHidden ? 'bg-white/30' : 'hover:bg-white/20'}`}
-                title={showHidden ? "Hide ignored items" : "Show hidden assignments"}
-              >
-                {showHidden ? (
-                  <>
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                    </svg>
-                    <span>{hiddenCount}</span>
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.05 0 01-4.132 5.411m0 0L21 21" />
-                    </svg>
-                    <span>{hiddenCount}</span>
-                  </>
-                )}
-              </button>
-            )}
-            <button
-              onClick={handleRefresh}
-              disabled={isRefreshing}
-              className="p-1.5 hover:bg-white/20 rounded-full transition-colors disabled:opacity-50"
-              title="Refresh deadlines"
+          <button
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="p-1.5 hover:bg-white/20 rounded-full transition-colors disabled:opacity-50"
+            title="Refresh deadlines"
+          >
+            <svg
+              className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
             >
-              <svg
-                className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`}
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                />
-              </svg>
-            </button>
-          </div>
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              />
+            </svg>
+          </button>
         </div>
         <p className="text-xs text-blue-100 mt-1">Made by a student, for students</p>
       </div>
@@ -370,7 +336,23 @@ function AppContent() {
         
         {status === 'OK' && (
           <>
-            {upcoming.length === 0 && overdue.length === 0 && <EmptyView />}
+            {hiddenAssignments.length > 0 && (
+              <div className="mb-4 text-center">
+                <button
+                  onClick={handleShowAll}
+                  className="text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors bg-blue-50 hover:bg-blue-100 px-4 py-2 rounded-lg w-full"
+                >
+                  Show {hiddenAssignments.length} hidden assignment{hiddenAssignments.length > 1 ? 's' : ''}
+                </button>
+              </div>
+            )}
+
+            {visibleDeadlines.length === 0 && deadlines.length > 0 && hiddenAssignments.length > 0 ? (
+              <div className="text-center py-8 px-4">
+                <h2 className="text-lg font-semibold text-gray-800 mb-2">All visible items cleared!</h2>
+                <p className="text-sm text-gray-600">You've hidden all assignments.</p>
+              </div>
+            ) : visibleDeadlines.length === 0 && <EmptyView />}
             
             {/* Upcoming Section */}
             {(upcoming.length > 0 || overdue.length > 0) && (
@@ -382,12 +364,7 @@ function AppContent() {
                   <p className="text-sm text-gray-400 italic mb-4">No upcoming deadlines.</p>
                 ) : (
                   upcoming.map((deadline) => (
-                    <DeadlineCard 
-                      key={deadline.id} 
-                      deadline={deadline} 
-                      onHide={toggleHide}
-                      isHidden={hiddenIds.includes(deadline.id)}
-                    />
+                    <DeadlineCard key={deadline.id} deadline={deadline} onHide={handleHideAssignment} />
                   ))
                 )}
               </div>
@@ -400,12 +377,7 @@ function AppContent() {
                   {overdue.length} Overdue
                 </h3>
                 {overdue.map((deadline) => (
-                  <DeadlineCard 
-                    key={deadline.id} 
-                    deadline={deadline} 
-                    onHide={toggleHide}
-                    isHidden={hiddenIds.includes(deadline.id)}
-                  />
+                  <DeadlineCard key={deadline.id} deadline={deadline} onHide={handleHideAssignment} />
                 ))}
               </div>
             )}
@@ -446,3 +418,4 @@ export default function App() {
     </ErrorBoundary>
   );
 }
+```

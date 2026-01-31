@@ -1,4 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
-  <rect width="128" height="128" rx="16" fill="#2563eb"/>
-  <text x="64" y="80" font-size="64" text-anchor="middle" fill="white">📚</text>
+  <rect width="128" height="128" rx="24" fill="#2563EB"/>
+  <path d="M30 40C30 36 33 33 37 33H64V95H37C33 95 30 92 30 88V40Z" fill="white"/>
+  <path d="M64 33H91C95 33 98 36 98 40V88C98 92 95 95 91 95H64V33Z" fill="#E2E8F0"/>
+  <path d="M40 45H54" stroke="#2563EB" stroke-width="4" stroke-linecap="round"/>
+  <path d="M40 55H54" stroke="#2563EB" stroke-width="4" stroke-linecap="round"/>
+  <path d="M40 65H54" stroke="#2563EB" stroke-width="4" stroke-linecap="round"/>
+  <path d="M74 45H88" stroke="#2563EB" stroke-width="4" stroke-linecap="round"/>
+  <path d="M74 55H88" stroke="#2563EB" stroke-width="4" stroke-linecap="round"/>
+  <path d="M74 65H88" stroke="#2563EB" stroke-width="4" stroke-linecap="round"/>
 </svg>
