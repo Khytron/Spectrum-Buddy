@@ -2,7 +2,8 @@
 
 A Chrome Extension for viewing your UM Spectrum (Moodle LMS) assignment deadlines at a glance.
 
-<img width="401" height="460" alt="image" src="https://github.com/user-attachments/assets/d07a3d9b-b58d-4cfd-a99e-57afe60adf3f" />
+<img width="399" height="450" alt="image" src="https://github.com/user-attachments/assets/847783d5-bfe5-4dbb-afe4-93cc9b84a772" />
+
 
 
 ## Features
