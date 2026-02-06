@@ -2,6 +2,62 @@ const SPECTRUM_URL = 'https://spectrum.um.edu.my/my/';
 const API_URL = 'https://spectrum.um.edu.my/lib/ajax/service.php';
 const ALARM_NAME = 'fetchDeadlinesAlarm';
 const FETCH_INTERVAL_MINUTES = 30;
+const MIN_REFRESH_MINUTES = 5;
+const MAX_REFRESH_MINUTES = 180;
+
+const DEFAULT_PREFERENCES = {
+  notificationsEnabled: true,
+  reminderOffsets: [1440, 60], // 24 hours, 1 hour
+  refreshMinutes: FETCH_INTERVAL_MINUTES,
+};
+
+/**
+ * Ensures preferences are normalized and persisted
+ * @returns {Promise<{notificationsEnabled: boolean, reminderOffsets: number[], refreshMinutes: number}>}
+ */
+async function ensurePreferences() {
+  const { preferences } = await chrome.storage.local.get(['preferences']);
+  const normalized = normalizePreferences(preferences || {});
+
+  if (!preferences || JSON.stringify(preferences) !== JSON.stringify(normalized)) {
+    await chrome.storage.local.set({ preferences: normalized });
+  }
+
+  return normalized;
+}
+
+/**
+ * Normalizes preference values with defaults and bounds
+ * @param {object} prefs
+ */
+function normalizePreferences(prefs) {
+  const refreshMinutes = clampNumber(
+    typeof prefs.refreshMinutes === 'number' ? prefs.refreshMinutes : DEFAULT_PREFERENCES.refreshMinutes,
+    MIN_REFRESH_MINUTES,
+    MAX_REFRESH_MINUTES
+  );
+
+  const reminderOffsets = Array.isArray(prefs.reminderOffsets) && prefs.reminderOffsets.length > 0
+    ? prefs.reminderOffsets.filter((value) => Number.isFinite(value) && value > 0)
+    : DEFAULT_PREFERENCES.reminderOffsets;
+
+  return {
+    notificationsEnabled: prefs.notificationsEnabled ?? DEFAULT_PREFERENCES.notificationsEnabled,
+    reminderOffsets: Array.from(new Set(reminderOffsets)).sort((a, b) => b - a),
+    refreshMinutes,
+  };
+}
+
+function clampNumber(value, min, max) {
+  return Math.min(Math.max(value, min), max);
+}
+
+async function scheduleAlarm(refreshMinutes) {
+  await chrome.alarms.create(ALARM_NAME, {
+    delayInMinutes: 1,
+    periodInMinutes: refreshMinutes,
+  });
+}
 
 /**
  * Fetches the Spectrum dashboard to get the sesskey
@@ -129,11 +185,97 @@ function countUrgentDeadlines(deadlines) {
   }).length;
 }
 
+function formatOffsetLabel(offsetMinutes) {
+  if (offsetMinutes >= 60) {
+    const hours = Math.round(offsetMinutes / 60);
+    return hours === 1 ? '1 hour' : `${hours} hours`;
+  }
+  return `${offsetMinutes} minutes`;
+}
+
+async function processReminders(deadlines) {
+  const preferences = await ensurePreferences();
+  if (!preferences.notificationsEnabled) {
+    return;
+  }
+
+  const now = Date.now();
+  const { sentReminders = {}, notificationLinks = {}, hiddenAssignments = [] } =
+    await chrome.storage.local.get(['sentReminders', 'notificationLinks', 'hiddenAssignments']);
+  const hiddenSet = new Set(hiddenAssignments || []);
+  const deadlineMap = new Map(deadlines.map((deadline) => [deadline.id, deadline]));
+
+  const updatedSent = { ...sentReminders };
+  const updatedLinks = { ...notificationLinks };
+
+  for (const deadline of deadlines) {
+    if (deadline.isSubmitted || hiddenSet.has(deadline.id)) {
+      continue;
+    }
+
+    const dueTime = new Date(deadline.dueDate).getTime();
+    if (!Number.isFinite(dueTime) || dueTime <= now) {
+      continue;
+    }
+
+    for (const offsetMinutes of preferences.reminderOffsets) {
+      const offsetMs = offsetMinutes * 60 * 1000;
+      if (dueTime - now > offsetMs) {
+        continue;
+      }
+
+      const reminderKey = `${deadline.id}:${offsetMinutes}`;
+      if (updatedSent[reminderKey]) {
+        continue;
+      }
+
+      const notificationId = `deadline:${deadline.id}:${offsetMinutes}`;
+      const dueDate = new Date(deadline.dueDate);
+      const offsetLabel = formatOffsetLabel(offsetMinutes);
+      const title = `Due in ${offsetLabel}`;
+      const message = `${deadline.assignmentTitle} (${deadline.courseName || 'Unknown Course'})\nDue ${dueDate.toLocaleString()}`;
+
+      await chrome.notifications.create(notificationId, {
+        type: 'basic',
+        iconUrl: chrome.runtime.getURL('icons/icon128.png'),
+        title,
+        message,
+        priority: 1,
+      });
+
+      updatedSent[reminderKey] = now;
+      updatedLinks[notificationId] = deadline.link || SPECTRUM_URL;
+    }
+  }
+
+  // Cleanup reminders for missing/old deadlines or offsets
+  const validOffsets = new Set(preferences.reminderOffsets.map((offset) => offset.toString()));
+  for (const key of Object.keys(updatedSent)) {
+    const [deadlineId, offset] = key.split(':');
+    const deadline = deadlineMap.get(deadlineId);
+    if (!deadline || !validOffsets.has(offset)) {
+      delete updatedSent[key];
+      continue;
+    }
+    const dueTime = new Date(deadline.dueDate).getTime();
+    if (!Number.isFinite(dueTime) || dueTime < now - (7 * 24 * 60 * 60 * 1000)) {
+      delete updatedSent[key];
+    }
+  }
+
+  await chrome.storage.local.set({
+    sentReminders: updatedSent,
+    notificationLinks: updatedLinks,
+  });
+}
+
 /**
  * Main function to fetch and process deadlines
  */
 export async function fetchDeadlines() {
   console.log('[Spectrum Buddy] Fetching deadlines via API...');
+
+  await ensurePreferences();
 
   // Step 1: Get Session Key
   const session = await fetchSessionInfo();
@@ -166,6 +308,7 @@ export async function fetchDeadlines() {
 
     await updateBadge('OK', urgentCount);
     console.log(`[Spectrum Buddy] Found ${deadlines.length} deadlines via API`);
+    await processReminders(deadlines);
 
   } catch (error) {
     console.error('[Spectrum Buddy] API Fetch failed:', error);
@@ -187,16 +330,18 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 // Set up alarm on install/startup
 chrome.runtime.onInstalled.addListener(() => {
   console.log('[Spectrum Buddy] Extension installed');
-  chrome.alarms.create(ALARM_NAME, {
-    delayInMinutes: 1,
-    periodInMinutes: FETCH_INTERVAL_MINUTES,
+  ensurePreferences().then((preferences) => {
+    scheduleAlarm(preferences.refreshMinutes);
+    fetchDeadlines();
   });
-  fetchDeadlines();
 });
 
 chrome.runtime.onStartup.addListener(() => {
   console.log('[Spectrum Buddy] Browser started');
-  fetchDeadlines();
+  ensurePreferences().then((preferences) => {
+    scheduleAlarm(preferences.refreshMinutes);
+    fetchDeadlines();
+  });
 });
 
 // Listen for manual refresh requests from popup
@@ -205,4 +350,23 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     fetchDeadlines().then(() => sendResponse({ success: true }));
     return true; // Keep message channel open for async response
   }
+
+  if (message.action === 'updatePreferences') {
+    const normalized = normalizePreferences(message.preferences || {});
+    chrome.storage.local.set({ preferences: normalized }).then(() => {
+      scheduleAlarm(normalized.refreshMinutes).then(() => sendResponse({ success: true }));
+    });
+    return true;
+  }
+});
+
+chrome.notifications.onClicked.addListener(async (notificationId) => {
+  const { notificationLinks = {} } = await chrome.storage.local.get(['notificationLinks']);
+  const link = notificationLinks[notificationId];
+  if (link) {
+    await chrome.tabs.create({ url: link });
+    delete notificationLinks[notificationId];
+    await chrome.storage.local.set({ notificationLinks });
+  }
+  chrome.notifications.clear(notificationId);
 });

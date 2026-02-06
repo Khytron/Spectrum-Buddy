@@ -3,6 +3,19 @@ import React, { useState, useEffect, useCallback } from 'react';
 // Urgency thresholds in milliseconds
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 const FOUR_DAYS_MS = 4 * 24 * 60 * 60 * 1000;
+const MIN_REFRESH_MINUTES = 5;
+const MAX_REFRESH_MINUTES = 180;
+
+const DEFAULT_PREFERENCES = {
+  notificationsEnabled: true,
+  reminderOffsets: [1440, 60],
+  refreshMinutes: 30,
+};
+
+const REMINDER_OPTIONS = [
+  { label: '24 hours before', value: 1440 },
+  { label: '1 hour before', value: 60 },
+];
 
 /**
  * Determines the urgency level of a deadline
@@ -53,6 +66,22 @@ function formatDueDate(isoDate) {
   }
 
   return date.toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
+function normalizePreferences(prefs) {
+  const refreshMinutes = Number.isFinite(prefs.refreshMinutes)
+    ? Math.min(Math.max(prefs.refreshMinutes, MIN_REFRESH_MINUTES), MAX_REFRESH_MINUTES)
+    : DEFAULT_PREFERENCES.refreshMinutes;
+
+  const reminderOffsets = Array.isArray(prefs.reminderOffsets) && prefs.reminderOffsets.length > 0
+    ? prefs.reminderOffsets.filter((value) => Number.isFinite(value) && value > 0)
+    : DEFAULT_PREFERENCES.reminderOffsets;
+
+  return {
+    notificationsEnabled: prefs.notificationsEnabled ?? DEFAULT_PREFERENCES.notificationsEnabled,
+    reminderOffsets: Array.from(new Set(reminderOffsets)).sort((a, b) => b - a),
+    refreshMinutes,
+  };
 }
 
 const URGENCY_STYLES = {
@@ -237,14 +266,26 @@ function AppContent() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [hiddenIds, setHiddenIds] = useState([]);
   const [showHidden, setShowHidden] = useState(false);
+  const [preferences, setPreferences] = useState(DEFAULT_PREFERENCES);
+  const [showSettings, setShowSettings] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCourse, setSelectedCourse] = useState('ALL');
 
   const loadData = useCallback(async () => {
-    const data = await chrome.storage.local.get(['status', 'deadlines', 'lastFetch', 'error', 'hiddenAssignments']);
+    const data = await chrome.storage.local.get([
+      'status',
+      'deadlines',
+      'lastFetch',
+      'error',
+      'hiddenAssignments',
+      'preferences',
+    ]);
     setStatus(data.status || 'LOADING');
     setDeadlines(data.deadlines || []);
     setLastFetch(data.lastFetch);
     setError(data.error);
     setHiddenIds(data.hiddenAssignments || []);
+    setPreferences(normalizePreferences(data.preferences || {}));
   }, []);
 
   useEffect(() => {
@@ -257,6 +298,7 @@ function AppContent() {
       if (changes.lastFetch) setLastFetch(changes.lastFetch.newValue);
       if (changes.error) setError(changes.error.newValue);
       if (changes.hiddenAssignments) setHiddenIds(changes.hiddenAssignments.newValue || []);
+      if (changes.preferences) setPreferences(normalizePreferences(changes.preferences.newValue || {}));
     };
 
     chrome.storage.onChanged.addListener(handleStorageChange);
@@ -271,6 +313,17 @@ function AppContent() {
       console.error('Refresh failed:', err);
     } finally {
       setTimeout(() => setIsRefreshing(false), 1000);
+    }
+  };
+
+  const updatePreferences = async (updates) => {
+    const nextPreferences = normalizePreferences({ ...preferences, ...updates });
+    setPreferences(nextPreferences);
+    await chrome.storage.local.set({ preferences: nextPreferences });
+    try {
+      await chrome.runtime.sendMessage({ action: 'updatePreferences', preferences: nextPreferences });
+    } catch (err) {
+      console.error('Update preferences failed:', err);
     }
   };
 
@@ -290,9 +343,26 @@ function AppContent() {
   const overdue = [];
   const now = Date.now();
 
-  const filteredDeadlines = showHidden 
-    ? deadlines 
-    : deadlines.filter(d => !hiddenIds.includes(d.id));
+  const availableCourses = Array.from(
+    new Set(deadlines.map((deadline) => deadline.courseName).filter(Boolean))
+  ).sort();
+
+  const normalizedSearch = searchTerm.trim().toLowerCase();
+  const filteredDeadlines = deadlines.filter((deadline) => {
+    if (!showHidden && hiddenIds.includes(deadline.id)) {
+      return false;
+    }
+    if (selectedCourse !== 'ALL' && deadline.courseName !== selectedCourse) {
+      return false;
+    }
+    if (normalizedSearch) {
+      const haystack = `${deadline.assignmentTitle || ''} ${deadline.courseName || ''}`.toLowerCase();
+      if (!haystack.includes(normalizedSearch)) {
+        return false;
+      }
+    }
+    return true;
+  });
 
   filteredDeadlines.forEach((d) => {
     if (d.isSubmitted) return; 
@@ -307,7 +377,7 @@ function AppContent() {
   const hiddenCount = hiddenIds.length;
 
   return (
-    <div className="min-h-[400px] bg-white flex flex-col">
+    <div className="w-80 h-[360px] bg-white flex flex-col">
       {/* Header */}
       <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 py-3 sticky top-0 z-10 shadow-sm">
         <div className="flex items-center justify-between">
@@ -338,6 +408,20 @@ function AppContent() {
               </button>
             )}
             <button
+              onClick={() => setShowSettings(!showSettings)}
+              className={`p-1.5 rounded-full transition-colors ${showSettings ? 'bg-white/30' : 'hover:bg-white/20'}`}
+              title={showSettings ? 'Close settings' : 'Open settings'}
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M11.983 7.5a4.5 4.5 0 100 9 4.5 4.5 0 000-9zM20.667 12a8.614 8.614 0 00-.088-1.2l2.005-1.56-2-3.464-2.384.96a8.785 8.785 0 00-2.079-1.2l-.36-2.52H10.2l-.36 2.52a8.785 8.785 0 00-2.079 1.2l-2.384-.96-2 3.464 2.005 1.56A8.614 8.614 0 005.333 12c0 .405.03.804.088 1.2l-2.005 1.56 2 3.464 2.384-.96a8.785 8.785 0 002.079 1.2l.36 2.52h4.56l.36-2.52a8.785 8.785 0 002.079-1.2l2.384.96 2-3.464-2.005-1.56c.058-.396.088-.795.088-1.2z"
+                />
+              </svg>
+            </button>
+            <button
               onClick={handleRefresh}
               disabled={isRefreshing}
               className="p-1.5 hover:bg-white/20 rounded-full transition-colors disabled:opacity-50"
@@ -363,13 +447,95 @@ function AppContent() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-3">
-        {status === 'LOADING' && <LoadingView />}
-        {status === 'NEEDS_LOGIN' && <NeedsLoginView />}
-        {status === 'ERROR' && <ErrorView error={error} />}
-        
-        {status === 'OK' && (
-          <>
+      <div className="flex-1 overflow-y-auto">
+        <div className="p-3">
+          {status === 'LOADING' && <LoadingView />}
+          {status === 'NEEDS_LOGIN' && <NeedsLoginView />}
+          {status === 'ERROR' && <ErrorView error={error} />}
+          
+          {status === 'OK' && (
+            <>
+            {showSettings && (
+              <div className="mb-4 rounded-lg border bg-gray-50 p-3 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-gray-700">Notifications</p>
+                    <p className="text-xs text-gray-500">Get reminders before deadlines.</p>
+                  </div>
+                  <label className="inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="sr-only"
+                      checked={preferences.notificationsEnabled}
+                      onChange={(e) => updatePreferences({ notificationsEnabled: e.target.checked })}
+                    />
+                    <div className={`w-10 h-5 rounded-full transition-colors ${preferences.notificationsEnabled ? 'bg-blue-600' : 'bg-gray-300'}`}>
+                      <span className={`block w-3 h-3 bg-white rounded-full mt-1 ml-1 transition-transform ${preferences.notificationsEnabled ? 'translate-x-5' : ''}`} />
+                    </div>
+                  </label>
+                </div>
+
+                <div>
+                  <p className="text-xs font-semibold text-gray-600 mb-2">Reminder times</p>
+                  <div className="flex flex-col gap-2">
+                    {REMINDER_OPTIONS.map((option) => (
+                      <label key={option.value} className="text-xs text-gray-700 flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={preferences.reminderOffsets.includes(option.value)}
+                          disabled={!preferences.notificationsEnabled}
+                          onChange={() => {
+                            const current = preferences.reminderOffsets;
+                            const nextOffsets = current.includes(option.value)
+                              ? current.filter((value) => value !== option.value)
+                              : [...current, option.value];
+                            updatePreferences({ reminderOffsets: nextOffsets });
+                          }}
+                        />
+                        {option.label}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-gray-600">Refresh interval (minutes)</label>
+                  <input
+                    type="number"
+                    min={MIN_REFRESH_MINUTES}
+                    max={MAX_REFRESH_MINUTES}
+                    value={preferences.refreshMinutes}
+                    onChange={(e) => {
+                      const nextValue = Number(e.target.value);
+                      updatePreferences({ refreshMinutes: Number.isNaN(nextValue) ? MIN_REFRESH_MINUTES : nextValue });
+                    }}
+                    className="mt-1 w-full border rounded px-2 py-1 text-sm"
+                  />
+                  <p className="text-[11px] text-gray-500 mt-1">Min {MIN_REFRESH_MINUTES}, max {MAX_REFRESH_MINUTES} minutes.</p>
+                </div>
+              </div>
+            )}
+
+            <div className="mb-3 space-y-2">
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search assignments or courses"
+                className="w-full border rounded px-2 py-1 text-sm"
+              />
+              <select
+                value={selectedCourse}
+                onChange={(e) => setSelectedCourse(e.target.value)}
+                className="w-full border rounded px-2 py-1 text-sm"
+              >
+                <option value="ALL">All courses</option>
+                {availableCourses.map((course) => (
+                  <option key={course} value={course}>{course}</option>
+                ))}
+              </select>
+            </div>
+
             {upcoming.length === 0 && overdue.length === 0 && <EmptyView />}
             
             {/* Upcoming Section */}
@@ -417,17 +583,18 @@ function AppContent() {
                   </h3>
                </div>
             )}
-          </>
-        )}
+            </>
+          )}
+        </div>
       </div>
 
       {/* Footer */}
-      <div className="border-t px-4 py-2 bg-gray-50">
+      <div className="border-t px-4 py-0 bg-gray-50 flex items-center h-7">
         <a
           href="https://spectrum.um.edu.my"
           target="_blank"
           rel="noopener noreferrer"
-          className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1"
+          className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1 leading-none"
         >
           Open Spectrum
           <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
