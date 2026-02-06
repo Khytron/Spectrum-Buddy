@@ -89,18 +89,6 @@ npm run build
 
 ## Configuration
 
-### Updating the Parser Selectors
-
-The parser in `src/utils/parser.js` uses placeholder CSS selectors. After inspecting the actual Spectrum website, update the `SELECTORS` object:
-
-```javascript
-const SELECTORS = {
-  eventItems: ['.your-actual-selector'],
-  courseName: ['.your-course-name-selector'],
-  // ... etc
-};
-```
-
 ### Adjusting Fetch Interval
 
 In `src/background/index.js`, modify `FETCH_INTERVAL_MINUTES`:
