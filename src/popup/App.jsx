@@ -475,7 +475,7 @@ function AppContent() {
               onClick={handleRefresh}
               disabled={isRefreshing}
               className="p-1.5 hover:bg-white/20 rounded-full transition-colors disabled:opacity-50"
-              title="Refresh deadlines"
+              title="Refresh extension" 
             >
               <svg
                 className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`}
