@@ -268,6 +268,7 @@ function AppContent() {
   const [showHidden, setShowHidden] = useState(false);
   const [preferences, setPreferences] = useState(DEFAULT_PREFERENCES);
   const [showSettings, setShowSettings] = useState(false);
+  const [showSupport, setShowSupport] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCourse, setSelectedCourse] = useState('ALL');
 
@@ -377,7 +378,49 @@ function AppContent() {
   const hiddenCount = hiddenIds.length;
 
   return (
-    <div className="w-80 h-[360px] bg-white flex flex-col">
+    <div className="w-80 h-[360px] bg-white flex flex-col relative">
+      {showSupport && (
+        <div className="absolute inset-0 bg-white z-50 flex flex-col shadow-xl animate-in fade-in slide-in-from-bottom-4 duration-200">
+          <div className="flex items-center justify-between p-4 border-b">
+            <h2 className="text-lg font-bold text-gray-800">Support Spectrum Buddy</h2>
+            <button
+              onClick={() => setShowSupport(false)}
+              className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto p-4 flex flex-col items-center">
+            <p className="text-sm text-gray-600 text-center mb-4">
+              If you find this extension helpful and want to support me, you can buy me kopi ais ☕❤️
+            </p>
+            <div className="bg-gray-50 p-2 rounded-xl border mb-4">
+              <img 
+                src="/icons/duitnow-qr.jpeg" 
+                alt="DuitNow QR Code" 
+                className="w-40 h-40 object-contain rounded-lg bg-white shadow-sm"
+                onError={(e) => { e.target.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJjdXJyZW50Q29sb3IiIHN0cm9rZS13aWR0aD0iMS41IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxwYXRoIGQ9Ik0yMSAyMWwtNS4xOTctNTEuOTdBMiAyIDAgMCAwIDE0LjM4OCAxNGgtNC43NzZhMiAyIDAgMCAwLTEuNDE0LjU4NkwzIDIxIi8+PGNpcmNsZSBjeD0iOSIgY3k9IjkiIHI9IjIiLz48cGF0aCBkPSJNMjEgMTV2NGEyIDIgMCAwIDEtMiAySDVhMiAyIDAgMCAxLTItMlY1YTIgMiAwIDAgMSAyLTJoMTRhMiAyIDAgMCAxIDIgMnY0Ii8+PC9zdmc+'; }}
+              />
+            </div>
+            <div className="w-full bg-blue-50 rounded-lg p-3 text-sm mb-4">
+              <div className="flex justify-between mb-1">
+                <span className="text-gray-500">Bank</span>
+                <span className="font-semibold text-gray-800">CIMB Bank</span>
+              </div>
+              <div className="flex justify-between mb-1">
+                <span className="text-gray-500">Acc No.</span>
+                <span className="font-semibold text-gray-800 tracking-wider">7651631650</span>
+              </div>
+            </div>
+            <p className="text-xs text-gray-400 mt-auto">
+              Contact: 01173140563
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 py-3 sticky top-0 z-10 shadow-sm">
         <div className="flex items-center justify-between">
@@ -596,7 +639,7 @@ function AppContent() {
       </div>
 
       {/* Footer */}
-      <div className="border-t px-4 py-0 bg-gray-50 flex items-center h-7">
+      <div className="border-t px-4 py-0 bg-gray-50 flex items-center justify-between h-8">
         <a
           href="https://spectrum.um.edu.my"
           target="_blank"
@@ -608,6 +651,15 @@ function AppContent() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
           </svg>
         </a>
+        <button
+          onClick={() => setShowSupport(true)}
+          className="text-[10px] text-red-500 hover:text-red-700 flex items-center gap-1 font-medium transition-colors bg-red-50 hover:bg-red-100 px-2 py-1 rounded-full leading-none border border-red-100"
+        >
+          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+          </svg>
+          Support
+        </button>
       </div>
     </div>
   );
