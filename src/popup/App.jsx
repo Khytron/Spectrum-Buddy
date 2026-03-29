@@ -194,7 +194,7 @@ function ErrorView({ error }) {
       </div>
       <h2 className="text-lg font-semibold text-gray-800 mb-2">Connection Error</h2>
       <p className="text-sm text-gray-600">
-        {error || 'Unable to connect to Spectrum. Please check your internet connection.'}
+        Log in to Spectrum and Refresh Extension
       </p>
     </div>
   );
@@ -412,13 +412,20 @@ function AppContent() {
               className={`p-1.5 rounded-full transition-colors ${showSettings ? 'bg-white/30' : 'hover:bg-white/20'}`}
               title={showSettings ? 'Close settings' : 'Open settings'}
             >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M11.983 7.5a4.5 4.5 0 100 9 4.5 4.5 0 000-9zM20.667 12a8.614 8.614 0 00-.088-1.2l2.005-1.56-2-3.464-2.384.96a8.785 8.785 0 00-2.079-1.2l-.36-2.52H10.2l-.36 2.52a8.785 8.785 0 00-2.079 1.2l-2.384-.96-2 3.464 2.005 1.56A8.614 8.614 0 005.333 12c0 .405.03.804.088 1.2l-2.005 1.56 2 3.464 2.384-.96a8.785 8.785 0 002.079 1.2l.36 2.52h4.56l.36-2.52a8.785 8.785 0 002.079-1.2l2.384.96 2-3.464-2.005-1.56c.058-.396.088-.795.088-1.2z"
-                />
+              <svg 
+                  xmlns="http://www.w3.org/2000/svg" 
+                  width="24" 
+                  height="24" 
+                  viewBox="0 0 24 24" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  strokeWidth="2" 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                  className="w-5 h-5"
+              >
+                  <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+                  <circle cx="12" cy="12" r="3" />
               </svg>
             </button>
             <button
@@ -443,7 +450,7 @@ function AppContent() {
             </button>
           </div>
         </div>
-        <p className="text-xs text-blue-100 mt-1">Made by a student, for students</p>
+        <p className="text-xs text-blue-100 mt-1">Keep track of your tutorial/assignments</p>
       </div>
 
       {/* Content */}
