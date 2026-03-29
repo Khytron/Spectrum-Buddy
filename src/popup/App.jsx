@@ -382,7 +382,7 @@ function AppContent() {
       {showSupport && (
         <div className="absolute inset-0 bg-white z-50 flex flex-col shadow-xl animate-in fade-in slide-in-from-bottom-4 duration-200">
           <div className="flex items-center justify-between p-4 border-b">
-            <h2 className="text-lg font-bold text-gray-800">Support Spectrum Buddy</h2>
+            <h2 className="text-lg font-bold text-gray-800">Support Future Projects</h2>
             <button
               onClick={() => setShowSupport(false)}
               className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
@@ -394,7 +394,7 @@ function AppContent() {
           </div>
           <div className="flex-1 overflow-y-auto p-4 flex flex-col items-center">
             <p className="text-sm text-gray-600 text-center mb-4">
-              If you find this extension helpful and want to support me, you can buy me kopi ais ☕❤️
+              If you find this extension helpful and want to support my future projects (or buy me a coffee), feel free to donate ❤️ 
             </p>
             <div className="bg-gray-50 p-2 rounded-xl border mb-4">
               <img 
@@ -415,7 +415,7 @@ function AppContent() {
               </div>
             </div>
             <p className="text-xs text-gray-400 mt-auto">
-              Contact: 01173140563
+              Contact: 01161666534
             </p>
           </div>
         </div>
@@ -658,7 +658,7 @@ function AppContent() {
           <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
             <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
           </svg>
-          Support
+          
         </button>
       </div>
     </div>
