@@ -20,14 +20,22 @@
   "permissions": [
     "storage",
     "alarms",
-    "notifications",
-    "offscreen"
+    "notifications"
   ],
   "host_permissions": [
     "https://spectrum.um.edu.my/*"
   ],
   "background": {
+    "scripts": [
+      "src/background/index.js"
+    ],
     "service_worker": "src/background/index.js",
     "type": "module"
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "spectrum-buddy@your-name-or-org.com",
+      "strict_min_version": "112.0"
+    }
   }
 }

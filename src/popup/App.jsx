@@ -269,6 +269,7 @@ function AppContent() {
   const [preferences, setPreferences] = useState(DEFAULT_PREFERENCES);
   const [showSettings, setShowSettings] = useState(false);
   const [showSupport, setShowSupport] = useState(false);
+  const [qrError, setQrError] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCourse, setSelectedCourse] = useState('ALL');
 
@@ -397,12 +398,20 @@ function AppContent() {
               If you find this extension helpful and want to support my future projects (or buy me a coffee), feel free to donate ❤️ 
             </p>
             <div className="bg-gray-50 p-2 rounded-xl border mb-4">
-              <img 
-                src="/icons/duitnow-qr.jpeg" 
-                alt="DuitNow QR Code" 
-                className="w-40 h-40 object-contain rounded-lg bg-white shadow-sm"
-                onError={(e) => { e.target.src = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJjdXJyZW50Q29sb3IiIHN0cm9rZS13aWR0aD0iMS41IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxwYXRoIGQ9Ik0yMSAyMWwtNS4xOTctNTEuOTdBMiAyIDAgMCAwIDE0LjM4OCAxNGgtNC43NzZhMiAyIDAgMCAwLTEuNDE0LjU4NkwzIDIxIi8+PGNpcmNsZSBjeD0iOSIgY3k9IjkiIHI9IjIiLz48cGF0aCBkPSJNMjEgMTV2NGEyIDIgMCAwIDEtMiAySDVhMiAyIDAgMCAxLTItMlY1YTIgMiAwIDAgMSAyLTJoMTRhMiAyIDAgMCAxIDIgMnY0Ii8+PC9zdmc+'; }}
-              />
+              {qrError ? (
+                <div className="w-40 h-40 bg-white rounded-lg shadow-sm flex items-center justify-center text-gray-400">
+                  <svg className="w-20 h-20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                  </svg>
+                </div>
+              ) : (
+                <img 
+                  src="/icons/duitnow-qr.jpeg" 
+                  alt="DuitNow QR Code" 
+                  className="w-40 h-40 object-contain rounded-lg bg-white shadow-sm"
+                  onError={() => setQrError(true)}
+                />
+              )}
             </div>
             <div className="w-full bg-blue-50 rounded-lg p-3 text-sm mb-4">
               <div className="flex justify-between mb-1">

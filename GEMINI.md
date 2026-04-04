@@ -12,14 +12,9 @@ Spectrum Buddy is a Chrome Extension designed to help students track assignment 
 
 ## Project Structure
 - **`src/popup/`**: The frontend UI of the extension (React App).
-    - `App.jsx`: Main component rendering the deadline list, search, filters, and settings.
-    - `App_new.jsx`: (Draft/Legacy) Simplified version of the popup.
+    - `App.jsx`: Main component rendering the deadline list, search, filters, settings, and support (donation) view.
 - **`src/background/`**: Background service worker.
     - `index.js`: Handles periodic fetching (alarms), session key extraction, API calls, badge updates, and notifications.
-- **`src/offscreen/`**: Offscreen document scripts.
-    - `offscreen.js`: Provides access to `DOMParser` for HTML scraping (currently used as a legacy/fallback method).
-- **`src/utils/`**: Shared utilities.
-    - `parser.js`: HTML parsing logic for Spectrum's pages (Legacy fallback).
 - **`manifest.json`**: Extension configuration (permissions, host permissions, background scripts).
 
 ## Key Commands
@@ -37,8 +32,8 @@ Spectrum Buddy is a Chrome Extension designed to help students track assignment 
     - 🟢 Green: Due in more than 4 days
     - ⚫ Gray: Overdue (past deadline)
 - **UI Controls:** Search functionality, course filtering, and the ability to hide/ignore specific assignments.
+- **Donation/Support:** Direct DuitNow QR and bank transfer info overlay for users to support the project.
 
 ## Development Notes
 - **Testing:** Load the `dist` folder as an "unpacked extension" in `chrome://extensions`.
-- **Primary Fetch Method:** The extension currently uses the Moodle AJAX API, which is more reliable than HTML scraping.
-- **Legacy Parser:** `src/utils/parser.js` and `src/offscreen/` contain HTML parsing logic that is currently inactive in the primary background script but remains in the codebase as a potential fallback.
+- **Primary Fetch Method:** The extension currently uses the Moodle AJAX API exclusively. Legacy HTML scraping logic (offscreen) has been removed to simplify the codebase and reduce Chrome Web Store review time.
