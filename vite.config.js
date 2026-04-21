@@ -13,6 +13,7 @@ export default defineConfig({
       input: {
         popup: 'src/popup/index.html',
         offscreen: 'src/offscreen/offscreen.html',
+        reminder: 'src/reminder/index.html',
       },
     },
   },

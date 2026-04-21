@@ -8,11 +8,12 @@ const MAX_REFRESH_MINUTES = 180;
 
 const DEFAULT_PREFERENCES = {
   notificationsEnabled: true,
-  reminderOffsets: [1440, 60],
+  reminderOffsets: [2880, 1440, 60],
   refreshMinutes: 30,
 };
 
 const REMINDER_OPTIONS = [
+  { label: '48 hours before', value: 2880 },
   { label: '24 hours before', value: 1440 },
   { label: '1 hour before', value: 60 },
 ];

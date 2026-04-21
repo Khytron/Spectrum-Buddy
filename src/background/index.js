@@ -7,7 +7,7 @@ const MAX_REFRESH_MINUTES = 180;
 
 const DEFAULT_PREFERENCES = {
   notificationsEnabled: true,
-  reminderOffsets: [1440, 60], // 24 hours, 1 hour
+  reminderOffsets: [2880, 1440, 60], // 48 hours, 24 hours, 1 hour
   refreshMinutes: FETCH_INTERVAL_MINUTES,
 };
 
@@ -243,6 +243,10 @@ async function processReminders(deadlines) {
         priority: 1,
       });
 
+      // Open full-screen reminder tab for all enabled offsets (48h, 24h, 1h)
+      const reminderUrl = chrome.runtime.getURL(`src/reminder/index.html?title=${encodeURIComponent(deadline.assignmentTitle)}&course=${encodeURIComponent(deadline.courseName)}&dueDate=${encodeURIComponent(deadline.dueDate)}&link=${encodeURIComponent(deadline.link)}&offset=${offsetMinutes}`);
+      chrome.tabs.create({ url: reminderUrl });
+
       updatedSent[reminderKey] = now;
       updatedLinks[notificationId] = deadline.link || SPECTRUM_URL;
     }
@@ -356,6 +360,39 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     chrome.storage.local.set({ preferences: normalized }).then(() => {
       scheduleAlarm(normalized.refreshMinutes).then(() => sendResponse({ success: true }));
     });
+    return true;
+  }
+
+  if (message.action === 'triggerTestReminder') {
+    console.log('[Test] Triggering test reminder...');
+    const dummyDeadline = {
+      id: 'test-assignment-48h',
+      assignmentTitle: 'Tutorial Week 7 - Bayes Theorem',
+      courseName: 'WIX1002 FUNDAMENTALS OF DATA SCIENCE',
+      dueDate: new Date(Date.now() + 47 * 60 * 60 * 1000).toISOString(),
+      link: 'https://spectrum.um.edu.my',
+      isSubmitted: false
+    };
+
+    // Immediate response
+    sendResponse({ success: true, message: 'Test signal received' });
+
+    (async () => {
+      try {
+        const { sentReminders = {} } = await chrome.storage.local.get(['sentReminders']);
+        
+        // Force clear flags
+        delete sentReminders['test-assignment-48h:2880'];
+        delete sentReminders['test-assignment-48h:1440'];
+        delete sentReminders['test-assignment-48h:60'];
+        
+        await chrome.storage.local.set({ sentReminders });
+        console.log('[Test] Processing 48h reminder...');
+        await processReminders([dummyDeadline]);
+      } catch (err) {
+        console.error('[Test] Error in test handler:', err);
+      }
+    })();
     return true;
   }
 });
