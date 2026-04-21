@@ -1,6 +1,6 @@
 {
   "name": "spectrum-buddy",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Chrome Extension to fetch assignment deadlines from Spectrum LMS",
   "type": "module",
   "scripts": {
