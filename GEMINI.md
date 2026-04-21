@@ -30,7 +30,7 @@ Spectrum Buddy is a Chrome Extension designed to help students track assignment 
 ## Key Features
 - **Authentication:** Relies on the user's active browser session cookies for `https://spectrum.um.edu.my`. Extracts `sesskey` automatically from the dashboard.
 - **Background Sync:** Fetches data periodically (default: 30 mins, customizable 5–180 mins) to update the badge icon.
-- **Notifications:** Desktop alerts for upcoming deadlines with customizable reminder offsets (e.g., 24h, 1h before).
+- **Notifications:** Desktop alerts for upcoming deadlines with customizable reminder offsets (e.g., 48h, 24h, 1h before).
 - **Urgency Indicators:**
     - 🔴 Red: Due within 24 hours
     - 🟡 Yellow: Due within 4 days

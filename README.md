@@ -15,7 +15,7 @@ A Chrome Extension for viewing your UM Spectrum (Moodle LMS) assignment deadline
   - 🟢 **Green:** Due in > 4 days
   - ⚫ **Gray:** Overdue
 - 🔄 Automatic background sync every 30 minutes
-- 🔔 Desktop reminders (24h and 1h before due by default)
+- 🔔 Desktop reminders (48h, 24h and 1h before due by default)
 - 🔎 Search and filter by course
 - ⚙️ Built-in settings for reminders and refresh interval
 - 🔒 Uses your existing browser session (no separate login required)
@@ -83,7 +83,7 @@ npm run build
 
 ### Notifications
 
-- Default reminders: **24 hours** and **1 hour** before due
+- Default reminders: **48 hours**, **24 hours** and **1 hour** before due
 - Customize reminders and refresh interval in the popup settings
 - Clicking a notification opens the assignment in Spectrum
 
