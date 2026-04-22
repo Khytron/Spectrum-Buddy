@@ -45,7 +45,7 @@ export default defineManifest((env) => {
   if (isFirefox) {
     manifest.browser_specific_settings = {
       gecko: {
-        id: "spectrum-buddy@um.edu.my", // Or your own ID
+        id: "spectrum-buddy@your-name-or-org.com",
         strict_min_version: "109.0"
       }
     };
