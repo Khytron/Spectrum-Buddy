@@ -43,30 +43,44 @@ function formatDueDate(isoDate) {
   const date = new Date(isoDate);
   const now = new Date();
   const diffMs = date.getTime() - now.getTime();
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
+  
   if (diffMs < 0) {
     return `Past due (${date.toLocaleDateString([], { month: 'short', day: 'numeric' })})`;
   }
 
+  const diffMinsTotal = Math.floor(diffMs / (1000 * 60));
+  const diffHoursTotal = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffDaysTotal = Math.floor(diffHoursTotal / 24);
+  
+  let timeLeftStr;
+  if (diffHoursTotal > 96) {
+    timeLeftStr = `${diffDaysTotal}d`;
+  } else if (diffHoursTotal >= 1) {
+    timeLeftStr = `${diffHoursTotal}h`;
+  } else {
+    timeLeftStr = `${diffMinsTotal}min`;
+  }
+
+  const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  
+  // Calculate day difference based on calendar days
+  const startOfNow = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const startOfDue = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const diffDays = Math.round((startOfDue - startOfNow) / (1000 * 60 * 60 * 24));
+
   if (diffDays === 0) {
-    const hours = Math.floor(diffMs / (1000 * 60 * 60));
-    if (hours === 0) {
-      const minutes = Math.floor(diffMs / (1000 * 60));
-      return `Due in ${minutes}m`;
-    }
-    return `Due in ${hours}h`;
+    return `Today, ${timeStr}, ${timeLeftStr}`;
   }
 
   if (diffDays === 1) {
-    return `Tomorrow, ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    return `Tomorrow, ${timeStr}, ${timeLeftStr}`;
   }
 
   if (diffDays < 7) {
-    return `${date.toLocaleDateString([], { weekday: 'short' })}, ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    return `${date.toLocaleDateString([], { weekday: 'short' })}, ${timeStr}, ${timeLeftStr}`;
   }
 
-  return date.toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  return `${date.toLocaleDateString([], { month: 'short', day: 'numeric' })}, ${timeStr}, ${timeLeftStr}`;
 }
 
 function normalizePreferences(prefs) {
