@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import browser from '../utils/browser-polyfill';
 
 const formatDueDate = (isoDate) => {
   const date = new Date(isoDate);

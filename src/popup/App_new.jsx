@@ -1,5 +1,6 @@
 ```javascript
 import React, { useState, useEffect, useCallback } from 'react';
+import browser from '../utils/browser-polyfill';
 
 // Urgency thresholds in milliseconds
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
@@ -120,7 +121,7 @@ function DeadlineCard({ deadline, onHide }) {
 
 function NeedsLoginView() {
   const handleLogin = () => {
-    chrome.tabs.create({ url: 'https://spectrum.um.edu.my' });
+    browser.tabs.create({ url: 'https://spectrum.um.edu.my' });
   };
 
   return (
@@ -228,7 +229,7 @@ function AppContent() {
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const loadData = useCallback(async () => {
-    const data = await chrome.storage.local.get(['status', 'deadlines', 'lastFetch', 'error', 'hiddenAssignments']);
+    const data = await browser.storage.local.get(['status', 'deadlines', 'lastFetch', 'error', 'hiddenAssignments']);
     setStatus(data.status || 'LOADING');
     setDeadlines(data.deadlines || []);
     setHiddenAssignments(data.hiddenAssignments || []);
@@ -248,14 +249,14 @@ function AppContent() {
       if (changes.error) setError(changes.error.newValue);
     };
 
-    chrome.storage.onChanged.addListener(handleStorageChange);
-    return () => chrome.storage.onChanged.removeListener(handleStorageChange);
+    browser.storage.onChanged.addListener(handleStorageChange);
+    return () => browser.storage.onChanged.removeListener(handleStorageChange);
   }, [loadData]);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
     try {
-      await chrome.runtime.sendMessage({ action: 'refreshDeadlines' });
+      await browser.runtime.sendMessage({ action: 'refreshDeadlines' });
     } catch (err) {
       console.error('Refresh failed:', err);
     } finally {
@@ -266,12 +267,12 @@ function AppContent() {
   const handleHideAssignment = async (assignmentId) => {
     const newHidden = [...new Set([...hiddenAssignments, assignmentId])];
     setHiddenAssignments(newHidden);
-    await chrome.storage.local.set({ hiddenAssignments: newHidden });
+    await browser.storage.local.set({ hiddenAssignments: newHidden });
   };
 
   const handleShowAll = async () => {
     setHiddenAssignments([]);
-    await chrome.storage.local.set({ hiddenAssignments: [] });
+    await browser.storage.local.set({ hiddenAssignments: [] });
   };
 
   const formatLastFetch = () => {

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import browser from '../utils/browser-polyfill';
 
 // Urgency thresholds in milliseconds
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
@@ -174,7 +175,7 @@ function DeadlineCard({ deadline, onHide, isHidden }) {
 
 function NeedsLoginView() {
   const handleLogin = () => {
-    chrome.tabs.create({ url: 'https://spectrum.um.edu.my' });
+    browser.tabs.create({ url: 'https://spectrum.um.edu.my' });
   };
 
   return (
@@ -288,7 +289,7 @@ function AppContent() {
   const [selectedCourse, setSelectedCourse] = useState('ALL');
 
   const loadData = useCallback(async () => {
-    const data = await chrome.storage.local.get([
+    const data = await browser.storage.local.get([
       'status',
       'deadlines',
       'lastFetch',
@@ -317,14 +318,14 @@ function AppContent() {
       if (changes.preferences) setPreferences(normalizePreferences(changes.preferences.newValue || {}));
     };
 
-    chrome.storage.onChanged.addListener(handleStorageChange);
-    return () => chrome.storage.onChanged.removeListener(handleStorageChange);
+    browser.storage.onChanged.addListener(handleStorageChange);
+    return () => browser.storage.onChanged.removeListener(handleStorageChange);
   }, [loadData]);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
     try {
-      await chrome.runtime.sendMessage({ action: 'refreshDeadlines' });
+      await browser.runtime.sendMessage({ action: 'refreshDeadlines' });
     } catch (err) {
       console.error('Refresh failed:', err);
     } finally {
@@ -335,9 +336,9 @@ function AppContent() {
   const updatePreferences = async (updates) => {
     const nextPreferences = normalizePreferences({ ...preferences, ...updates });
     setPreferences(nextPreferences);
-    await chrome.storage.local.set({ preferences: nextPreferences });
+    await browser.storage.local.set({ preferences: nextPreferences });
     try {
-      await chrome.runtime.sendMessage({ action: 'updatePreferences', preferences: nextPreferences });
+      await browser.runtime.sendMessage({ action: 'updatePreferences', preferences: nextPreferences });
     } catch (err) {
       console.error('Update preferences failed:', err);
     }
@@ -351,7 +352,7 @@ function AppContent() {
       newHiddenIds = [...hiddenIds, id];
     }
     setHiddenIds(newHiddenIds);
-    await chrome.storage.local.set({ hiddenAssignments: newHiddenIds });
+    await browser.storage.local.set({ hiddenAssignments: newHiddenIds });
   };
 
   // Categorize deadlines
@@ -430,7 +431,7 @@ function AppContent() {
               </div>
             </div>
             <p className="text-xs text-gray-400 mt-auto">
-              Contact: 01161666534
+              Contact: 01173140563
             </p>
           </div>
         </div>

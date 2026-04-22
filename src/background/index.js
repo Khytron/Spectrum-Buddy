@@ -1,3 +1,4 @@
+import browser from '../utils/browser-polyfill';
 const SPECTRUM_URL = 'https://spectrum.um.edu.my/my/';
 const API_URL = 'https://spectrum.um.edu.my/lib/ajax/service.php';
 const ALARM_NAME = 'fetchDeadlinesAlarm';
@@ -16,11 +17,11 @@ const DEFAULT_PREFERENCES = {
  * @returns {Promise<{notificationsEnabled: boolean, reminderOffsets: number[], refreshMinutes: number}>}
  */
 async function ensurePreferences() {
-  const { preferences } = await chrome.storage.local.get(['preferences']);
+  const { preferences } = await browser.storage.local.get(['preferences']);
   const normalized = normalizePreferences(preferences || {});
 
   if (!preferences || JSON.stringify(preferences) !== JSON.stringify(normalized)) {
-    await chrome.storage.local.set({ preferences: normalized });
+    await browser.storage.local.set({ preferences: normalized });
   }
 
   return normalized;
@@ -53,7 +54,7 @@ function clampNumber(value, min, max) {
 }
 
 async function scheduleAlarm(refreshMinutes) {
-  await chrome.alarms.create(ALARM_NAME, {
+  await browser.alarms.create(ALARM_NAME, {
     delayInMinutes: 1,
     periodInMinutes: refreshMinutes,
   });
@@ -154,18 +155,18 @@ function processEvents(apiEvents) {
  */
 async function updateBadge(status, count = 0) {
   if (status === 'NEEDS_LOGIN') {
-    await chrome.action.setBadgeText({ text: '!' });
-    await chrome.action.setBadgeBackgroundColor({ color: '#EF4444' }); // Red
+    await browser.action.setBadgeText({ text: '!' });
+    await browser.action.setBadgeBackgroundColor({ color: '#EF4444' }); // Red
   } else if (status === 'ERROR') {
-    await chrome.action.setBadgeText({ text: '?' });
-    await chrome.action.setBadgeBackgroundColor({ color: '#F59E0B' }); // Yellow
+    await browser.action.setBadgeText({ text: '?' });
+    await browser.action.setBadgeBackgroundColor({ color: '#F59E0B' }); // Yellow
   } else {
     // OK status - show count of urgent items or clear badge
     if (count > 0) {
-      await chrome.action.setBadgeText({ text: count.toString() });
-      await chrome.action.setBadgeBackgroundColor({ color: '#3B82F6' }); // Blue
+      await browser.action.setBadgeText({ text: count.toString() });
+      await browser.action.setBadgeBackgroundColor({ color: '#3B82F6' }); // Blue
     } else {
-      await chrome.action.setBadgeText({ text: '' });
+      await browser.action.setBadgeText({ text: '' });
     }
   }
 }
@@ -201,7 +202,7 @@ async function processReminders(deadlines) {
 
   const now = Date.now();
   const { sentReminders = {}, notificationLinks = {}, hiddenAssignments = [] } =
-    await chrome.storage.local.get(['sentReminders', 'notificationLinks', 'hiddenAssignments']);
+    await browser.storage.local.get(['sentReminders', 'notificationLinks', 'hiddenAssignments']);
   const hiddenSet = new Set(hiddenAssignments || []);
   const deadlineMap = new Map(deadlines.map((deadline) => [deadline.id, deadline]));
 
@@ -235,17 +236,17 @@ async function processReminders(deadlines) {
       const title = `Due in ${offsetLabel}`;
       const message = `${deadline.assignmentTitle} (${deadline.courseName || 'Unknown Course'})\nDue ${dueDate.toLocaleString()}`;
 
-      await chrome.notifications.create(notificationId, {
+      await browser.notifications.create(notificationId, {
         type: 'basic',
-        iconUrl: chrome.runtime.getURL('icons/icon128.png'),
+        iconUrl: browser.runtime.getURL('icons/icon128.png'),
         title,
         message,
         priority: 1,
       });
 
       // Open full-screen reminder tab for all enabled offsets (48h, 24h, 1h)
-      const reminderUrl = chrome.runtime.getURL(`src/reminder/index.html?title=${encodeURIComponent(deadline.assignmentTitle)}&course=${encodeURIComponent(deadline.courseName)}&dueDate=${encodeURIComponent(deadline.dueDate)}&link=${encodeURIComponent(deadline.link)}&offset=${offsetMinutes}`);
-      chrome.tabs.create({ url: reminderUrl });
+      const reminderUrl = browser.runtime.getURL(`src/reminder/index.html?title=${encodeURIComponent(deadline.assignmentTitle)}&course=${encodeURIComponent(deadline.courseName)}&dueDate=${encodeURIComponent(deadline.dueDate)}&link=${encodeURIComponent(deadline.link)}&offset=${offsetMinutes}`);
+      browser.tabs.create({ url: reminderUrl });
 
       updatedSent[reminderKey] = now;
       updatedLinks[notificationId] = deadline.link || SPECTRUM_URL;
@@ -267,7 +268,7 @@ async function processReminders(deadlines) {
     }
   }
 
-  await chrome.storage.local.set({
+  await browser.storage.local.set({
     sentReminders: updatedSent,
     notificationLinks: updatedLinks,
   });
@@ -286,14 +287,14 @@ export async function fetchDeadlines() {
 
   if (session.error) {
     console.error('[Spectrum Buddy] Session Error:', session.error);
-    await chrome.storage.local.set({ status: 'ERROR', error: session.error, lastFetch: Date.now() });
+    await browser.storage.local.set({ status: 'ERROR', error: session.error, lastFetch: Date.now() });
     await updateBadge('ERROR');
     return;
   }
 
   if (!session.loggedIn) {
     console.log('[Spectrum Buddy] Needs Login');
-    await chrome.storage.local.set({ status: 'NEEDS_LOGIN', deadlines: [], lastFetch: Date.now() });
+    await browser.storage.local.set({ status: 'NEEDS_LOGIN', deadlines: [], lastFetch: Date.now() });
     await updateBadge('NEEDS_LOGIN');
     return;
   }
@@ -304,7 +305,7 @@ export async function fetchDeadlines() {
     const deadlines = processEvents(rawEvents);
     const urgentCount = countUrgentDeadlines(deadlines);
 
-    await chrome.storage.local.set({
+    await browser.storage.local.set({
       status: 'OK',
       deadlines,
       lastFetch: Date.now(),
@@ -316,7 +317,7 @@ export async function fetchDeadlines() {
 
   } catch (error) {
     console.error('[Spectrum Buddy] API Fetch failed:', error);
-    await chrome.storage.local.set({
+    await browser.storage.local.set({
       status: 'ERROR',
       error: 'Failed to fetch Moodle events',
       lastFetch: Date.now(),
@@ -325,14 +326,14 @@ export async function fetchDeadlines() {
   }
 }
 // Listen for alarm triggers
-chrome.alarms.onAlarm.addListener((alarm) => {
+browser.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === ALARM_NAME) {
     fetchDeadlines();
   }
 });
 
 // Set up alarm on install/startup
-chrome.runtime.onInstalled.addListener(() => {
+browser.runtime.onInstalled.addListener(() => {
   console.log('[Spectrum Buddy] Extension installed');
   ensurePreferences().then((preferences) => {
     scheduleAlarm(preferences.refreshMinutes);
@@ -340,7 +341,7 @@ chrome.runtime.onInstalled.addListener(() => {
   });
 });
 
-chrome.runtime.onStartup.addListener(() => {
+browser.runtime.onStartup.addListener(() => {
   console.log('[Spectrum Buddy] Browser started');
   ensurePreferences().then((preferences) => {
     scheduleAlarm(preferences.refreshMinutes);
@@ -349,7 +350,7 @@ chrome.runtime.onStartup.addListener(() => {
 });
 
 // Listen for manual refresh requests from popup
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === 'refreshDeadlines') {
     fetchDeadlines().then(() => sendResponse({ success: true }));
     return true; // Keep message channel open for async response
@@ -357,7 +358,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   if (message.action === 'updatePreferences') {
     const normalized = normalizePreferences(message.preferences || {});
-    chrome.storage.local.set({ preferences: normalized }).then(() => {
+    browser.storage.local.set({ preferences: normalized }).then(() => {
       scheduleAlarm(normalized.refreshMinutes).then(() => sendResponse({ success: true }));
     });
     return true;
@@ -379,14 +380,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
     (async () => {
       try {
-        const { sentReminders = {} } = await chrome.storage.local.get(['sentReminders']);
+        const { sentReminders = {} } = await browser.storage.local.get(['sentReminders']);
         
         // Force clear flags
         delete sentReminders['test-assignment-48h:2880'];
         delete sentReminders['test-assignment-48h:1440'];
         delete sentReminders['test-assignment-48h:60'];
         
-        await chrome.storage.local.set({ sentReminders });
+        await browser.storage.local.set({ sentReminders });
         console.log('[Test] Processing 48h reminder...');
         await processReminders([dummyDeadline]);
       } catch (err) {
@@ -397,13 +398,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 });
 
-chrome.notifications.onClicked.addListener(async (notificationId) => {
-  const { notificationLinks = {} } = await chrome.storage.local.get(['notificationLinks']);
+browser.notifications.onClicked.addListener(async (notificationId) => {
+  const { notificationLinks = {} } = await browser.storage.local.get(['notificationLinks']);
   const link = notificationLinks[notificationId];
   if (link) {
-    await chrome.tabs.create({ url: link });
+    await browser.tabs.create({ url: link });
     delete notificationLinks[notificationId];
-    await chrome.storage.local.set({ notificationLinks });
+    await browser.storage.local.set({ notificationLinks });
   }
-  chrome.notifications.clear(notificationId);
+  browser.notifications.clear(notificationId);
 });
