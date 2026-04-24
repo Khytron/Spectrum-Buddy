@@ -1,10 +1,10 @@
 import browser from '../utils/browser-polyfill';
-const SPECTRUM_URL = 'https://spectrum.um.edu.my/my/';
-const API_URL = 'https://spectrum.um.edu.my/lib/ajax/service.php';
+import { spectrumConfig } from '../utils/spectrumConfig';
+
+const SPECTRUM_URL = spectrumConfig.urls.dashboard;
+const API_URL = spectrumConfig.urls.api;
 const ALARM_NAME = 'fetchDeadlinesAlarm';
-const FETCH_INTERVAL_MINUTES = 30;
-const MIN_REFRESH_MINUTES = 5;
-const MAX_REFRESH_MINUTES = 180;
+const FETCH_INTERVAL_MINUTES = 5;
 
 const DEFAULT_PREFERENCES = {
   notificationsEnabled: true,
@@ -32,25 +32,15 @@ async function ensurePreferences() {
  * @param {object} prefs
  */
 function normalizePreferences(prefs) {
-  const refreshMinutes = clampNumber(
-    typeof prefs.refreshMinutes === 'number' ? prefs.refreshMinutes : DEFAULT_PREFERENCES.refreshMinutes,
-    MIN_REFRESH_MINUTES,
-    MAX_REFRESH_MINUTES
-  );
-
-  const reminderOffsets = Array.isArray(prefs.reminderOffsets) && prefs.reminderOffsets.length > 0
+  const reminderOffsets = Array.isArray(prefs.reminderOffsets)
     ? prefs.reminderOffsets.filter((value) => Number.isFinite(value) && value > 0)
     : DEFAULT_PREFERENCES.reminderOffsets;
 
   return {
     notificationsEnabled: prefs.notificationsEnabled ?? DEFAULT_PREFERENCES.notificationsEnabled,
     reminderOffsets: Array.from(new Set(reminderOffsets)).sort((a, b) => b - a),
-    refreshMinutes,
+    refreshMinutes: FETCH_INTERVAL_MINUTES,
   };
-}
-
-function clampNumber(value, min, max) {
-  return Math.min(Math.max(value, min), max);
 }
 
 async function scheduleAlarm(refreshMinutes) {
@@ -85,8 +75,7 @@ async function fetchSessionInfo() {
     }
 
     // Extract sesskey
-    // Pattern: "sesskey":"abc123xyz"  or  sesskey=abc123xyz
-    const match = html.match(/"sesskey":"([^"]+)"/) || html.match(/sesskey=([\w\d]+)/);
+    const match = html.match(spectrumConfig.patterns.sesskeyJson) || html.match(spectrumConfig.patterns.sesskeyUrl);
     if (match && match[1]) {
       return { loggedIn: true, sesskey: match[1] };
     }
@@ -106,15 +95,15 @@ async function fetchSessionInfo() {
 async function fetchCalendarEvents(sesskey) {
   const query = [{
     index: 0,
-    methodname: 'core_calendar_get_action_events_by_timesort',
+    methodname: spectrumConfig.api.methods.getEvents,
     args: {
-      limitnum: 20,
+      limitnum: 50,
       timesortfrom: Math.floor(Date.now() / 1000) - (30 * 24 * 60 * 60), // Include last 30 days for overdue items
       limittononsuspendedevents: true
     }
   }];
 
-  const url = `${API_URL}?sesskey=${sesskey}&info=core_calendar_get_action_events_by_timesort`;
+  const url = `${API_URL}?sesskey=${sesskey}&info=${spectrumConfig.api.methods.getEvents}`;
   
   const response = await fetch(url, {
     method: 'POST',
@@ -143,7 +132,6 @@ function processEvents(apiEvents) {
     assignmentTitle: event.name || 'Untitled Assignment',
     dueDate: new Date(event.timesort * 1000).toISOString(),
     link: event.action?.url || event.viewurl || '#',
-    isSubmitted: event.action?.actionable === false, // Heuristic: if not actionable, maybe submitted?
     isOverdue: new Date(event.timesort * 1000).getTime() < Date.now()
   })).sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
 }
@@ -182,7 +170,7 @@ function countUrgentDeadlines(deadlines) {
 
   return deadlines.filter((d) => {
     const dueTime = new Date(d.dueDate).getTime();
-    return dueTime > now && dueTime - now < oneDayMs && !d.isSubmitted;
+    return dueTime > now && dueTime - now < oneDayMs;
   }).length;
 }
 
@@ -210,7 +198,7 @@ async function processReminders(deadlines) {
   const updatedLinks = { ...notificationLinks };
 
   for (const deadline of deadlines) {
-    if (deadline.isSubmitted || hiddenSet.has(deadline.id)) {
+    if (hiddenSet.has(deadline.id)) {
       continue;
     }
 
