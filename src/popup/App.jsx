@@ -457,20 +457,45 @@ function AppContent() {
                 href="https://docs.google.com/forms/d/e/1FAIpQLSdvAG6lbVmUOsU2QL-jBigugY4Xy6VVyD2E0PLKKaHhJJFaqg/viewform?usp=publish-editor" 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="w-full py-2.5 px-4 bg-blue-50 text-blue-700 hover:bg-blue-100 font-semibold rounded-lg text-sm flex items-center gap-3 transition-colors border border-blue-100"
+                className="w-full py-2 px-4 bg-blue-50 text-blue-700 hover:bg-blue-100 font-semibold rounded-xl text-sm flex items-center gap-3 transition-all border border-blue-100 hover:shadow-sm"
               >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-                Bug Report
+                <div className="p-1.5 bg-blue-100 rounded-lg shrink-0">
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                </div>
+                <div className="flex flex-col items-start leading-tight">
+                  <span className="text-blue-800">Bug Report</span>
+                  <span className="text-[11px] font-normal text-blue-600/70 mt-0.5">Tell us what went wrong</span>
+                </div>
+              </a>
+
+              <a 
+                href="https://docs.google.com/forms/d/e/1FAIpQLSeqM2EhYNNmsYt0YvMisIIvarD4dpXz7VbhkHRDz2XKE7JKCg/viewform?usp=dialog" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="w-full py-2 px-4 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-semibold rounded-xl text-sm flex items-center gap-3 transition-all border border-emerald-100 hover:shadow-sm"
+              >
+                <div className="p-1.5 bg-emerald-100 rounded-lg shrink-0">
+                  <svg className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
+                </div>
+                <div className="flex flex-col items-start leading-tight">
+                  <span className="text-emerald-800">Suggest Features</span>
+                  <span className="text-[11px] font-normal text-emerald-600/70 mt-0.5">Help us make it better</span>
+                </div>
               </a>
 
               <a 
                 href="https://chromewebstore.google.com/detail/spectrum-buddy/clcinnekpkoppadokbglajalocblfdpm" 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="w-full py-2.5 px-4 bg-yellow-50 text-yellow-700 hover:bg-yellow-100 font-semibold rounded-lg text-sm flex items-center gap-3 transition-colors border border-yellow-100"
+                className="w-full py-2 px-4 bg-amber-50 text-amber-700 hover:bg-amber-100 font-semibold rounded-xl text-sm flex items-center gap-3 transition-all border border-amber-100 hover:shadow-sm"
               >
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
-                Rate & Review
+                <div className="p-1.5 bg-amber-100 rounded-lg shrink-0">
+                  <svg className="w-5 h-5 text-amber-600" fill="currentColor" viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
+                </div>
+                <div className="flex flex-col items-start leading-tight">
+                  <span className="text-amber-800">Rate Spectrum Buddy</span>
+                  <span className="text-[11px] font-normal text-amber-600/70 mt-0.5">Support us with a review!</span>
+                </div>
               </a>
             </div>
 
@@ -581,11 +606,7 @@ function AppContent() {
               </div>
             )}
             <div className="mb-3 space-y-2">
-              <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Search assignments or courses" className="w-full border rounded px-2 py-1 text-sm" />
-              <select value={selectedCourse} onChange={(e) => setSelectedCourse(e.target.value)} className="w-full border rounded px-2 py-1 text-sm">
-                <option value="ALL">All courses</option>
-                {availableCourses.map((c) => <option key={c} value={c}>{c}</option>)}
-              </select>
+              <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Search Courses or Assignments" className="w-full border rounded px-2 py-1 text-sm" />
             </div>
             {upcoming.length === 0 && overdue.length === 0 && <EmptyView />}
             {upcoming.length > 0 && (
