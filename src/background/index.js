@@ -9,12 +9,13 @@ const FETCH_INTERVAL_MINUTES = 5;
 const DEFAULT_PREFERENCES = {
   notificationsEnabled: true,
   reminderOffsets: [2880, 1440, 60], // 48 hours, 24 hours, 1 hour
+  customOffsets: [],
   refreshMinutes: FETCH_INTERVAL_MINUTES,
 };
 
 /**
  * Ensures preferences are normalized and persisted
- * @returns {Promise<{notificationsEnabled: boolean, reminderOffsets: number[], refreshMinutes: number}>}
+ * @returns {Promise<{notificationsEnabled: boolean, reminderOffsets: number[], customOffsets: number[], refreshMinutes: number}>}
  */
 async function ensurePreferences() {
   const { preferences } = await browser.storage.local.get(['preferences']);
@@ -36,9 +37,38 @@ function normalizePreferences(prefs) {
     ? prefs.reminderOffsets.filter((value) => Number.isFinite(value) && value > 0)
     : DEFAULT_PREFERENCES.reminderOffsets;
 
+  const FIXED_OFFSETS = [2880, 1440, 60];
+  
+  let customOffsets = [];
+  if (Array.isArray(prefs.customOffsets)) {
+    customOffsets = prefs.customOffsets.map(item => {
+      if (typeof item === 'number') return { offset: item, mode: 'hours' };
+      if (item && typeof item === 'object' && typeof item.offset === 'number') {
+        return { offset: item.offset, mode: item.mode || 'hours' };
+      }
+      return null;
+    }).filter(Boolean);
+  } else {
+    // Migration for older versions storing raw numbers in reminderOffsets
+    customOffsets = reminderOffsets
+      .filter(v => !FIXED_OFFSETS.includes(v))
+      .map(v => ({ offset: v, mode: 'hours' }));
+  }
+
+  // Deduplicate custom offsets by their numerical value
+  const seen = new Set();
+  const uniqueCustom = [];
+  for (const item of customOffsets) {
+    if (!seen.has(item.offset)) {
+      seen.add(item.offset);
+      uniqueCustom.push(item);
+    }
+  }
+
   return {
     notificationsEnabled: prefs.notificationsEnabled ?? DEFAULT_PREFERENCES.notificationsEnabled,
     reminderOffsets: Array.from(new Set(reminderOffsets)).sort((a, b) => b - a),
+    customOffsets: uniqueCustom.sort((a, b) => b.offset - a.offset),
     refreshMinutes: FETCH_INTERVAL_MINUTES,
   };
 }

@@ -12,6 +12,23 @@ const formatDueDate = (isoDate) => {
   });
 };
 
+const formatOffset = (minutes) => {
+  const offset = parseInt(minutes, 10);
+  if (offset <= 0) return 'now';
+  
+  if (offset % 1440 === 0) {
+    const days = offset / 1440;
+    return days === 1 ? '1 day' : `${days} days`;
+  }
+  
+  if (offset >= 60) {
+    const hours = Math.round(offset / 60);
+    return hours === 1 ? '1 hour' : `${hours}h`;
+  }
+  
+  return `${offset}m`;
+};
+
 function App() {
   const [params, setParams] = useState(null);
   const [isMuted, setIsMuted] = useState(false);
@@ -47,7 +64,7 @@ function App() {
 
         {/* Informative Subtitle */}
         <p className="text-lg md:text-xl text-[#64748b] mb-12 text-center">
-          Due in {params.offset >= 60 ? `${Math.round(params.offset / 60)}h` : `${params.offset}m`} — {params.course}
+          Due in {formatOffset(params.offset)} — {params.course}
         </p>
 
         {/* High-Impact Action Button (Green like the example) */}

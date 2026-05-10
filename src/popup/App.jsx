@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import browser from '../utils/browser-polyfill';
 
 // Urgency thresholds in milliseconds
@@ -8,6 +8,7 @@ const FOUR_DAYS_MS = 4 * 24 * 60 * 60 * 1000;
 const DEFAULT_PREFERENCES = {
   notificationsEnabled: true,
   reminderOffsets: [2880, 1440, 60],
+  customOffsets: [],
   refreshMinutes: 5,
 };
 
@@ -72,9 +73,38 @@ function normalizePreferences(prefs) {
     ? prefs.reminderOffsets.filter((value) => Number.isFinite(value) && value > 0)
     : DEFAULT_PREFERENCES.reminderOffsets;
 
+  const FIXED_OFFSETS = REMINDER_OPTIONS.map(opt => opt.value);
+  
+  let customOffsets = [];
+  if (Array.isArray(prefs.customOffsets)) {
+    customOffsets = prefs.customOffsets.map(item => {
+      if (typeof item === 'number') return { offset: item, mode: 'hours' };
+      if (item && typeof item === 'object' && typeof item.offset === 'number') {
+        return { offset: item.offset, mode: item.mode || 'hours' };
+      }
+      return null;
+    }).filter(Boolean);
+  } else {
+    // Migration
+    customOffsets = reminderOffsets
+      .filter(v => !FIXED_OFFSETS.includes(v))
+      .map(v => ({ offset: v, mode: 'hours' }));
+  }
+
+  // Deduplicate custom offsets by their numerical value
+  const seen = new Set();
+  const uniqueCustom = [];
+  for (const item of customOffsets) {
+    if (!seen.has(item.offset)) {
+      seen.add(item.offset);
+      uniqueCustom.push(item);
+    }
+  }
+
   return {
     notificationsEnabled: prefs.notificationsEnabled ?? DEFAULT_PREFERENCES.notificationsEnabled,
     reminderOffsets: Array.from(new Set(reminderOffsets)).sort((a, b) => b - a),
+    customOffsets: uniqueCustom,
     refreshMinutes: DEFAULT_PREFERENCES.refreshMinutes,
   };
 }
@@ -184,6 +214,93 @@ function EmptyView() {
   );
 }
 
+/**
+ * Component for custom reminder inputs
+ */
+function CustomReminderInput({ item, checked, isOffsetUsed, onToggle, onUpdate, onRemove, disabled }) {
+  const { offset, mode } = item;
+  const isDays = mode === 'days';
+  const divisor = isDays ? 1440 : 60;
+  const [value, setValue] = useState(Math.round(offset / divisor));
+
+  useEffect(() => {
+    setValue(Math.round(offset / divisor));
+  }, [offset, divisor]);
+
+  const handleBlur = () => {
+    const num = parseInt(value, 10);
+    const min = 1;
+    const max = isDays ? 30 : 999;
+    
+    if (!isNaN(num) && num >= min && num <= max) {
+      onUpdate(offset, { offset: num * divisor, mode });
+    } else {
+      setValue(Math.round(offset / divisor));
+    }
+  };
+
+  const handleModeToggle = () => {
+    if (disabled) return;
+    const nextMode = isDays ? 'hours' : 'days';
+    const nextDivisor = nextMode === 'days' ? 1440 : 60;
+    
+    let nextValue = nextMode === 'days' ? 3 : 12;
+    const limit = nextMode === 'days' ? 30 : 999;
+    while (isOffsetUsed(nextValue * nextDivisor) && nextValue < limit) {
+      nextValue++;
+    }
+    
+    onUpdate(offset, { offset: nextValue * nextDivisor, mode: nextMode });
+  };
+
+  const valInt = parseInt(value, 10);
+  const unitText = isDays ? (valInt === 1 ? 'day' : 'days') : (valInt === 1 ? 'hour' : 'hours');
+
+  return (
+    <div className={`flex items-center gap-3 text-xs text-gray-700 ${disabled ? 'opacity-50' : ''}`}>
+      <div className="flex items-center gap-2">
+        <input 
+          type="checkbox" 
+          checked={checked} 
+          onChange={onToggle}
+          disabled={disabled}
+        />
+        <div className="flex items-center gap-1.5">
+          <input 
+            type="number" 
+            value={value} 
+            disabled={disabled}
+            onChange={(e) => setValue(e.target.value)}
+            onBlur={handleBlur}
+            onKeyDown={(e) => e.key === 'Enter' && e.target.blur()}
+            className="w-[28px] border rounded px-1 py-0.5 text-center text-[10px] focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+          />
+          <div className="flex items-center gap-1 text-gray-600">
+            <button 
+              onClick={handleModeToggle}
+              disabled={disabled}
+              className="hover:text-blue-600 underline decoration-dotted underline-offset-2 transition-colors"
+            >
+              {unitText}
+            </button>
+            <span>before</span>
+          </div>
+        </div>
+      </div>
+      <button 
+        onClick={() => onRemove(offset)} 
+        disabled={disabled}
+        className="text-gray-400 hover:text-red-500 transition-colors p-0.5 rounded-full hover:bg-gray-100 flex-shrink-0"
+        title="Remove reminder"
+      >
+        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+  );
+}
+
 class ErrorBoundary extends React.Component {
   constructor(props) { super(props); this.state = { hasError: false, error: null }; }
   static getDerivedStateFromError(error) { return { hasError: true, error }; }
@@ -214,6 +331,8 @@ function AppContent() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCourse, setSelectedCourse] = useState('ALL');
 
+  const scrollContainerRef = useRef(null);
+
   const loadData = useCallback(async () => {
     const data = await browser.storage.local.get(['status', 'deadlines', 'lastFetch', 'error', 'hiddenAssignments', 'preferences']);
     setStatus(data.status || 'LOADING');
@@ -238,6 +357,13 @@ function AppContent() {
     return () => browser.storage.onChanged.removeListener(handleStorageChange);
   }, [loadData]);
 
+  // Scroll to top when settings are opened
+  useEffect(() => {
+    if (showSettings && scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [showSettings]);
+
   const handleRefresh = async () => {
     setIsRefreshing(true);
     try { await browser.runtime.sendMessage({ action: 'refreshDeadlines' }); }
@@ -255,6 +381,43 @@ function AppContent() {
     const newHiddenIds = hiddenIds.includes(id) ? hiddenIds.filter(hid => hid !== id) : [...hiddenIds, id];
     setHiddenIds(newHiddenIds);
     await browser.storage.local.set({ hiddenAssignments: newHiddenIds });
+  };
+
+  const isOffsetUsed = (off) => preferences.reminderOffsets.includes(off) || preferences.customOffsets.some(c => c.offset === off);
+
+  const handleAddCustomReminder = () => {
+    const currentCustom = preferences.customOffsets;
+    if (currentCustom.length >= 3) return;
+
+    let newOffset = 720; // Default 12 hours
+    while (isOffsetUsed(newOffset) && newOffset < 999 * 60) {
+      newOffset += 60;
+    }
+    
+    const newItem = { offset: newOffset, mode: 'hours' };
+    updatePreferences({ 
+      customOffsets: [...currentCustom, newItem],
+      reminderOffsets: [...preferences.reminderOffsets, newOffset]
+    });
+  };
+
+  const handleRemoveCustomReminder = (offset) => {
+    updatePreferences({ 
+      customOffsets: preferences.customOffsets.filter(v => v.offset !== offset),
+      reminderOffsets: preferences.reminderOffsets.filter(v => v !== offset) 
+    });
+  };
+
+  const handleUpdateCustomReminder = (oldOffset, newItem) => {
+    const nextCustom = preferences.customOffsets.map(v => v.offset === oldOffset ? newItem : v);
+    const nextActive = preferences.reminderOffsets.includes(oldOffset)
+      ? preferences.reminderOffsets.map(v => v === oldOffset ? newItem.offset : v)
+      : preferences.reminderOffsets;
+
+    updatePreferences({ 
+      customOffsets: nextCustom,
+      reminderOffsets: nextActive
+    });
   };
 
   const upcoming = [];
@@ -349,7 +512,7 @@ function AppContent() {
         <p className="text-xs text-blue-100 mt-1">Keep track of your tutorial/assignments</p>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-3">
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-3">
         {status === 'LOADING' && <LoadingView />}
         {status === 'NEEDS_LOGIN' && <NeedsLoginView />}
         {status === 'ERROR' && <ErrorView error={error} />}
@@ -367,7 +530,7 @@ function AppContent() {
                 <div><p className="text-xs font-semibold text-gray-600 mb-2">Reminder times</p>
                   <div className="flex flex-col gap-2">
                     {REMINDER_OPTIONS.map((option) => (
-                      <label key={option.value} className="text-xs text-gray-700 flex items-center gap-2">
+                      <label key={option.value} className={`text-xs text-gray-700 flex items-center gap-2 ${!preferences.notificationsEnabled ? 'opacity-50' : ''}`}>
                         <input type="checkbox" checked={preferences.reminderOffsets.includes(option.value)} disabled={!preferences.notificationsEnabled} onChange={() => {
                           const current = preferences.reminderOffsets;
                           const nextOffsets = current.includes(option.value) ? current.filter((v) => v !== option.value) : [...current, option.value];
@@ -377,6 +540,42 @@ function AppContent() {
                         }} />{option.label}
                       </label>
                     ))}
+
+                    {/* Custom Reminders */}
+                    {preferences.customOffsets
+                      .map((item) => (
+                        <CustomReminderInput 
+                          key={item.offset} 
+                          item={item}
+                          checked={preferences.reminderOffsets.includes(item.offset)}
+                          isOffsetUsed={isOffsetUsed}
+                          onToggle={() => {
+                            const offset = item.offset;
+                            const current = preferences.reminderOffsets;
+                            const nextOffsets = current.includes(offset) ? current.filter((v) => v !== offset) : [...current, offset];
+                            const updates = { reminderOffsets: nextOffsets };
+                            if (nextOffsets.length === 0 && REMINDER_OPTIONS.every(opt => !preferences.reminderOffsets.includes(opt.value))) updates.notificationsEnabled = false;
+                            updatePreferences(updates);
+                          }}
+                          onUpdate={handleUpdateCustomReminder} 
+                          onRemove={handleRemoveCustomReminder}
+                          disabled={!preferences.notificationsEnabled}
+                        />
+                      ))}
+
+                    {/* Add Button */}
+                    {preferences.customOffsets.length < 3 && (
+                      <button 
+                        onClick={handleAddCustomReminder}
+                        disabled={!preferences.notificationsEnabled}
+                        className="text-[10px] text-blue-600 hover:text-blue-800 font-bold flex items-center gap-1 mt-1 transition-colors disabled:opacity-50"
+                      >
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" />
+                        </svg>
+                        Add custom reminder
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
