@@ -148,6 +148,7 @@ function DeadlineCard({ deadline, onHide, isHidden }) {
         <button
           onClick={(e) => { e.preventDefault(); onHide(deadline.id); }}
           className="absolute top-2 right-2 p-1 text-gray-400 hover:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity bg-white/50 rounded-full"
+          title={isHidden ? "Unhide assignment" : "Hide assignment"}
         >
           {isHidden ? (
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -436,6 +437,8 @@ function AppContent() {
     return true;
   });
 
+  const activeHiddenCount = deadlines.filter(d => hiddenIds.includes(d.id)).length;
+
   filteredDeadlines.forEach((d) => {
     const dueTime = new Date(d.dueDate).getTime();
     if (dueTime < now) overdue.push(d); else upcoming.push(d);
@@ -524,14 +527,31 @@ function AppContent() {
         <div className="flex items-center justify-between">
           <h1 className="text-lg font-bold">Spectrum Buddy</h1>
           <div className="flex items-center gap-2">
-            {hiddenIds.length > 0 && (
-              <button onClick={() => setShowHidden(!showHidden)} className={`p-1.5 rounded-full transition-colors text-xs flex items-center gap-1 ${showHidden ? 'bg-white/30' : 'hover:bg-white/20'}`}>
+            {activeHiddenCount > 0 && (
+              <button
+                onClick={() => setShowHidden(!showHidden)}
+                className={`p-1.5 rounded-full transition-colors text-xs flex items-center gap-1 ${showHidden ? 'bg-white/30' : 'hover:bg-white/20'}`}
+                title={showHidden ? "Hide hidden assignments" : "Show hidden assignments"}
+              >
                 {showHidden ? <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg> : <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.05 0 01-4.132 5.411m0 0L21 21" /></svg>}
-                <span>{hiddenIds.length}</span>
+                <span>{activeHiddenCount}</span>
               </button>
             )}
-            <button onClick={() => setShowSettings(!showSettings)} className={`p-1.5 rounded-full transition-colors ${showSettings ? 'bg-white/30' : 'hover:bg-white/20'}`}><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" /><circle cx="12" cy="12" r="3" /></svg></button>
-            <button onClick={handleRefresh} disabled={isRefreshing} className="p-1.5 hover:bg-white/20 rounded-full transition-colors disabled:opacity-50"><svg className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg></button>
+            <button
+              onClick={() => setShowSettings(!showSettings)}
+              className={`p-1.5 rounded-full transition-colors ${showSettings ? 'bg-white/30' : 'hover:bg-white/20'}`}
+              title={showSettings ? "Close settings" : "Open settings"}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" /><circle cx="12" cy="12" r="3" /></svg>
+            </button>
+            <button
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className="p-1.5 hover:bg-white/20 rounded-full transition-colors disabled:opacity-50"
+              title="Refresh extension"
+            >
+              <svg className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+            </button>
           </div>
         </div>
         <p className="text-xs text-blue-100 mt-1">Keep track of your tutorial/assignments</p>
