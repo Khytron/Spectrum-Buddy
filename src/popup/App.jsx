@@ -174,7 +174,13 @@ function NeedsLoginView() {
         </svg>
       </div>
       <h2 className="text-lg font-semibold text-gray-800 mb-2">Session Expired</h2>
-      <button onClick={() => browser.tabs.create({ url: 'https://spectrum.um.edu.my' })} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors">Open Spectrum</button>
+      <button 
+        onClick={() => browser.tabs.create({ url: 'https://spectrum.um.edu.my' })} 
+        className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+        title="Open the UM Spectrum Page"
+      >
+        Open Spectrum
+      </button>
     </div>
   );
 }
@@ -450,7 +456,11 @@ function AppContent() {
         <div className="absolute inset-0 bg-white z-50 flex flex-col shadow-xl animate-in fade-in slide-in-from-bottom-4 duration-200">
           <div className="flex items-center p-4 border-b relative">
             <h2 className="text-lg font-bold text-gray-800 w-full text-center">Feedback</h2>
-            <button onClick={() => setShowSupport(false)} className="absolute right-4 p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors">
+            <button 
+              onClick={() => setShowSupport(false)} 
+              className="absolute right-4 p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+              title="Close Feedback page"
+            >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
           </div>
@@ -461,6 +471,7 @@ function AppContent() {
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="w-full py-2 px-4 bg-blue-50 text-blue-700 hover:bg-blue-100 font-semibold rounded-xl text-sm flex items-center gap-3 transition-all border border-blue-100 hover:shadow-sm"
+                title="Open Bug Report Google Form"
               >
                 <div className="p-1.5 bg-blue-100 rounded-lg shrink-0">
                   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
@@ -476,6 +487,7 @@ function AppContent() {
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="w-full py-2 px-4 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-semibold rounded-xl text-sm flex items-center gap-3 transition-all border border-emerald-100 hover:shadow-sm"
+                title="Open Suggest Features Google Form"
               >
                 <div className="p-1.5 bg-emerald-100 rounded-lg shrink-0">
                   <svg className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
@@ -491,6 +503,7 @@ function AppContent() {
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="w-full py-2 px-4 bg-amber-50 text-amber-700 hover:bg-amber-100 font-semibold rounded-xl text-sm flex items-center gap-3 transition-all border border-amber-100 hover:shadow-sm"
+                title="Rate Spectrum Buddy on Chrome Web Store"
               >
                 <div className="p-1.5 bg-amber-100 rounded-lg shrink-0">
                   <svg className="w-5 h-5 text-amber-600" fill="currentColor" viewBox="0 0 24 24"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/></svg>
@@ -567,7 +580,10 @@ function AppContent() {
               <div className="mb-4 rounded-lg border bg-gray-50 p-3 space-y-3">
                 <div className="flex items-center justify-between">
                   <div><p className="text-sm font-semibold text-gray-700">Notifications</p><p className="text-xs text-gray-500">Get reminders before deadlines.</p></div>
-                  <label className="inline-flex items-center cursor-pointer">
+                  <label 
+                    className="inline-flex items-center cursor-pointer"
+                    title={preferences.notificationsEnabled ? "Close notifications" : "Open notifications"}
+                  >
                     <input type="checkbox" className="sr-only" checked={preferences.notificationsEnabled} onChange={(e) => updatePreferences({ notificationsEnabled: e.target.checked })} />
                     <div className={`w-10 h-5 rounded-full transition-colors ${preferences.notificationsEnabled ? 'bg-blue-600' : 'bg-gray-300'}`}><span className={`block w-3 h-3 bg-white rounded-full mt-1 ml-1 transition-transform ${preferences.notificationsEnabled ? 'translate-x-5' : ''}`} /></div>
                   </label>
@@ -626,7 +642,14 @@ function AppContent() {
               </div>
             )}
             <div className="mb-3 space-y-2">
-              <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Search Courses or Assignments" className="w-full border rounded px-2 py-1 text-sm" />
+              <input 
+                type="text" 
+                value={searchTerm} 
+                onChange={(e) => setSearchTerm(e.target.value)} 
+                placeholder="Search Courses or Assignments" 
+                className="w-full border rounded px-2 py-1 text-sm"
+                title={searchTerm ? "" : "Search your keywords"}
+              />
             </div>
             {upcoming.length === 0 && overdue.length === 0 && <EmptyView />}
             {upcoming.length > 0 && (
@@ -646,11 +669,21 @@ function AppContent() {
       </div>
 
       <div className="border-t px-4 py-0 bg-gray-50 flex items-center justify-between h-8">
-        <a href="https://spectrum.um.edu.my" target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1 leading-none">
+        <a 
+          href="https://spectrum.um.edu.my" 
+          target="_blank" 
+          rel="noopener noreferrer" 
+          className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1 leading-none"
+          title="Open the UM Spectrum Page"
+        >
           Open Spectrum <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
         </a>
         {
-        <button onClick={() => setShowSupport(true)} className="text-[10px] text-blue-600 hover:text-blue-800 flex items-center gap-1 font-medium transition-colors bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded-full leading-none border border-blue-100">
+        <button 
+          onClick={() => setShowSupport(true)} 
+          className="text-[10px] text-blue-600 hover:text-blue-800 flex items-center gap-1 font-medium transition-colors bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded-full leading-none border border-blue-100"
+          title="Open Feedback page"
+        >
           Feedback
         </button> 
         }
