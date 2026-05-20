@@ -14,7 +14,7 @@ A Chrome Extension for viewing your UM Spectrum (Moodle LMS) assignment deadline
   - 🟡 **Yellow:** Due in < 4 days
   - 🟢 **Green:** Due in > 4 days
   - ⚫ **Gray:** Overdue
-- 🔄 Automatic background sync every 30 minutes
+- 🔄 Automatic background sync every 5 minutes
 - 🔔 Desktop reminders (48h, 24h and 1h before due by default)
 - 🔎 Search and filter by course
 - ⚙️ Built-in settings for reminders and refresh interval
@@ -42,7 +42,7 @@ A Chrome Extension for viewing your UM Spectrum (Moodle LMS) assignment deadline
 npm install
 
 # 2. Start development server (with HMR)
-npm run dev
+npm run dev:chrome
 
 # 3. Load extension in Chrome:
 #    - Open chrome://extensions/
@@ -55,7 +55,7 @@ npm run dev
 
 ```bash
 # Build for production
-npm run build
+npm run build:all
 
 # The `dist` folder contains the production-ready extension
 ```
