@@ -123,6 +123,24 @@ const DOT_STYLES = {
   gray: 'bg-gray-500',
 };
 
+const COURSE_COLORS = [
+  { bg: 'bg-blue-50', title: 'text-blue-800', desc: 'text-blue-600/70', border: 'border-blue-100', iconBg: 'bg-blue-100', iconText: 'text-blue-600' },
+  { bg: 'bg-emerald-50', title: 'text-emerald-800', desc: 'text-emerald-600/70', border: 'border-emerald-100', iconBg: 'bg-emerald-100', iconText: 'text-emerald-600' },
+  { bg: 'bg-amber-50', title: 'text-amber-800', desc: 'text-amber-600/70', border: 'border-amber-100', iconBg: 'bg-amber-100', iconText: 'text-amber-600' },
+  { bg: 'bg-red-50', title: 'text-red-800', desc: 'text-red-600/70', border: 'border-red-100', iconBg: 'bg-red-100', iconText: 'text-red-600' },
+  { bg: 'bg-purple-50', title: 'text-purple-800', desc: 'text-purple-600/70', border: 'border-purple-100', iconBg: 'bg-purple-100', iconText: 'text-purple-600' },
+  { bg: 'bg-pink-50', title: 'text-pink-800', desc: 'text-pink-600/70', border: 'border-pink-100', iconBg: 'bg-pink-100', iconText: 'text-pink-600' },
+  { bg: 'bg-fuchsia-50', title: 'text-fuchsia-800', desc: 'text-fuchsia-600/70', border: 'border-fuchsia-100', iconBg: 'bg-fuchsia-100', iconText: 'text-fuchsia-600' },
+  { bg: 'bg-cyan-50', title: 'text-cyan-800', desc: 'text-cyan-600/70', border: 'border-cyan-100', iconBg: 'bg-cyan-100', iconText: 'text-cyan-600' },
+];
+
+// Helper to shuffle colors for randomness
+const shuffledColors = [...COURSE_COLORS].sort(() => Math.random() - 0.5);
+
+const getCourseStyle = (index) => {
+  return shuffledColors[index % shuffledColors.length];
+};
+
 function DeadlineCard({ deadline, onHide, isHidden }) {
   const urgency = getUrgencyLevel(deadline.dueDate);
 
@@ -327,6 +345,7 @@ class ErrorBoundary extends React.Component {
 function AppContent() {
   const [status, setStatus] = useState('LOADING');
   const [deadlines, setDeadlines] = useState([]);
+  const [courses, setCourses] = useState([]);
   const [error, setError] = useState(null);
   const [lastFetch, setLastFetch] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -335,15 +354,17 @@ function AppContent() {
   const [preferences, setPreferences] = useState(DEFAULT_PREFERENCES);
   const [showSettings, setShowSettings] = useState(false);
   const [showSupport, setShowSupport] = useState(false);
+  const [showCourses, setShowCourses] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCourse, setSelectedCourse] = useState('ALL');
 
   const scrollContainerRef = useRef(null);
 
   const loadData = useCallback(async () => {
-    const data = await browser.storage.local.get(['status', 'deadlines', 'lastFetch', 'error', 'hiddenAssignments', 'preferences']);
+    const data = await browser.storage.local.get(['status', 'deadlines', 'courses', 'lastFetch', 'error', 'hiddenAssignments', 'preferences']);
     setStatus(data.status || 'LOADING');
     setDeadlines(data.deadlines || []);
+    setCourses(data.courses || []);
     setLastFetch(data.lastFetch);
     setError(data.error);
     setHiddenIds(data.hiddenAssignments || []);
@@ -355,6 +376,7 @@ function AppContent() {
     const handleStorageChange = (changes) => {
       if (changes.status) setStatus(changes.status.newValue);
       if (changes.deadlines) setDeadlines(changes.deadlines.newValue || []);
+      if (changes.courses) setCourses(changes.courses.newValue || []);
       if (changes.lastFetch) setLastFetch(changes.lastFetch.newValue);
       if (changes.error) setError(changes.error.newValue);
       if (changes.hiddenAssignments) setHiddenIds(changes.hiddenAssignments.newValue || []);
@@ -536,6 +558,54 @@ function AppContent() {
         </div>
       )}
 
+      {showCourses && (
+        <div className="absolute inset-0 bg-white z-50 flex flex-col shadow-xl animate-in fade-in slide-in-from-bottom-4 duration-200">
+          <div className="flex items-center p-4 border-b relative">
+            <h2 className="text-lg font-bold text-gray-800 w-full text-center">Courses</h2>
+            <button 
+              onClick={() => setShowCourses(false)} 
+              className="absolute right-4 p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+              title="Close Courses page"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto p-4 flex flex-col">
+            {courses.length === 0 ? (
+              <div className="flex-1 flex flex-col items-center justify-center text-gray-400">
+                <svg className="w-12 h-12 mb-2 opacity-20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                </svg>
+                <p className="text-sm font-medium">No courses found</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {courses.map((course) => {
+                  const style = getCourseStyle(course.id, course.fullname);
+                  return (
+                    <a 
+                      key={course.id}
+                      href={course.announcementsCmid 
+                        ? `https://spectrum.um.edu.my/mod/forum/view.php?id=${course.announcementsCmid}`
+                        : course.viewurl || `https://spectrum.um.edu.my/course/view.php?id=${course.id}`}
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className={`w-full py-2.5 px-4 ${style.bg} ${style.title} hover:bg-opacity-80 font-bold rounded-xl text-xs flex items-center gap-3 transition-all border ${style.border} hover:shadow-sm group`}
+                      title={`Open ${course.fullname}`}
+                    >
+                      <div className="flex flex-col items-start leading-tight overflow-hidden">
+                        <span className="truncate w-full">{course.fullname}</span>
+                        <span className={`text-[9px] font-normal ${style.desc} mt-0.5`}>{course.shortname}</span>
+                      </div>
+                    </a>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 py-3 sticky top-0 z-10 shadow-sm">
         <div className="flex items-center justify-between">
           <h1 className="text-lg font-bold">Spectrum Buddy</h1>
@@ -678,15 +748,22 @@ function AppContent() {
         >
           Open Spectrum <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
         </a>
-        {
-        <button 
-          onClick={() => setShowSupport(true)} 
-          className="text-[10px] text-blue-600 hover:text-blue-800 flex items-center gap-1 font-medium transition-colors bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded-full leading-none border border-blue-100"
-          title="Open Feedback page"
-        >
-          Feedback
-        </button> 
-        }
+        <div className="flex items-center gap-1.5">
+          <button 
+            onClick={() => setShowCourses(true)} 
+            className="text-[10px] text-blue-600 hover:text-blue-800 flex items-center gap-1 font-medium transition-colors bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded-full leading-none border border-blue-100"
+            title="Open Courses page"
+          >
+            Courses
+          </button>
+          <button 
+            onClick={() => setShowSupport(true)} 
+            className="text-[10px] text-blue-600 hover:text-blue-800 flex items-center gap-1 font-medium transition-colors bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded-full leading-none border border-blue-100"
+            title="Open Feedback page"
+          >
+            Feedback
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -52,6 +52,8 @@ export const spectrumConfig = {
   api: {
     methods: {
       getEvents: 'core_calendar_get_action_events_by_timesort',
+      getCourses: 'core_course_get_enrolled_courses_by_timeline_classification',
+      getForums: 'mod_forum_get_forums_by_courses',
     },
   },
 

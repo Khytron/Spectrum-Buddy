@@ -151,13 +151,116 @@ async function fetchCalendarEvents(sesskey) {
 }
 
 /**
+ * Fetches enrolled courses from Moodle API
+ * @param {string} sesskey
+ * @returns {Promise<Array>}
+ */
+async function fetchCourses(sesskey) {
+  const query = [{
+    index: 0,
+    methodname: spectrumConfig.api.methods.getCourses,
+    args: {
+      classification: 'all',
+      limit: 0,
+      offset: 0,
+      sort: 'fullname'
+    }
+  }];
+
+  const url = `${API_URL}?sesskey=${sesskey}&info=${spectrumConfig.api.methods.getCourses}`;
+  
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(query)
+  });
+
+  const json = await response.json();
+  
+  if (json[0]?.error) {
+    throw new Error(json[0].exception?.message || 'API Error');
+  }
+
+  return (json[0]?.data?.courses || []).map(course => ({
+    id: course.id,
+    fullname: course.fullname,
+    shortname: course.shortname,
+    viewurl: course.viewurl
+  }));
+}
+
+/**
+ * Fetches forum IDs for given courses to find Announcements cmid
+ * @param {string} sesskey
+ * @param {number[]} courseIds
+ * @returns {Promise<Object>} Map of courseId to announcements cmid
+ */
+async function fetchForumIds(sesskey, courseIds) {
+  if (!courseIds || !Array.isArray(courseIds) || courseIds.length === 0) return {};
+
+  const query = [{
+    index: 0,
+    methodname: spectrumConfig.api.methods.getForums,
+    args: { courseids: courseIds }
+  }];
+
+  const url = `${API_URL}?sesskey=${sesskey}&info=${spectrumConfig.api.methods.getForums}`;
+  
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(query)
+    });
+
+    const json = await response.json();
+    
+    // Check for Moodle-level errors
+    if (json[0]?.error) {
+      console.warn('[Spectrum Buddy] Forum API error:', json[0].exception);
+      return {};
+    }
+
+    const forums = json[0]?.data;
+    if (!Array.isArray(forums)) {
+      return {};
+    }
+
+    const announcementMap = {};
+
+    forums.forEach(forum => {
+      const isNewsType = forum.type === 'news';
+      const isAnnounceName = forum.name && (
+        forum.name.toLowerCase() === 'announcements' || 
+        forum.name.toLowerCase() === 'announcement' ||
+        forum.name.toLowerCase().includes('latest news')
+      );
+
+      // If we find a match, store it. news type takes priority.
+      if (isNewsType || isAnnounceName) {
+        if (!announcementMap[forum.course] || isNewsType) {
+          announcementMap[forum.course] = forum.cmid;
+        }
+      }
+    });
+
+    return announcementMap;
+  } catch (error) {
+    console.error('[Spectrum Buddy] Network error fetching forums:', error);
+    return {};
+  }
+}
+
+/**
  * Transforms API events to our internal deadline format
  * @param {Array} apiEvents
  * @returns {Array}
  */
 function processEvents(apiEvents) {
+  if (!Array.isArray(apiEvents)) return [];
   return apiEvents.map(event => ({
     id: `event-${event.id}`,
+    courseId: event.course?.id,
     courseName: event.course?.fullname || 'Unknown Course',
     assignmentTitle: event.name || 'Untitled Assignment',
     dueDate: new Date(event.timesort * 1000).toISOString(),
@@ -172,20 +275,24 @@ function processEvents(apiEvents) {
  * @param {number} [count] - Number of upcoming deadlines
  */
 async function updateBadge(status, count = 0) {
-  if (status === 'NEEDS_LOGIN') {
-    await browser.action.setBadgeText({ text: '!' });
-    await browser.action.setBadgeBackgroundColor({ color: '#EF4444' }); // Red
-  } else if (status === 'ERROR') {
-    await browser.action.setBadgeText({ text: '?' });
-    await browser.action.setBadgeBackgroundColor({ color: '#F59E0B' }); // Yellow
-  } else {
-    // OK status - show count of urgent items or clear badge
-    if (count > 0) {
-      await browser.action.setBadgeText({ text: count.toString() });
-      await browser.action.setBadgeBackgroundColor({ color: '#3B82F6' }); // Blue
+  try {
+    if (status === 'NEEDS_LOGIN') {
+      await browser.action.setBadgeText({ text: '!' });
+      await browser.action.setBadgeBackgroundColor({ color: '#EF4444' }); // Red
+    } else if (status === 'ERROR') {
+      await browser.action.setBadgeText({ text: '?' });
+      await browser.action.setBadgeBackgroundColor({ color: '#F59E0B' }); // Yellow
     } else {
-      await browser.action.setBadgeText({ text: '' });
+      // OK status - show count of urgent items or clear badge
+      if (count > 0) {
+        await browser.action.setBadgeText({ text: count.toString() });
+        await browser.action.setBadgeBackgroundColor({ color: '#3B82F6' }); // Blue
+      } else {
+        await browser.action.setBadgeText({ text: '' });
+      }
     }
+  } catch (err) {
+    console.error('[Badge] Failed to update badge:', err);
   }
 }
 
@@ -195,6 +302,7 @@ async function updateBadge(status, count = 0) {
  * @returns {number}
  */
 function countUrgentDeadlines(deadlines) {
+  if (!Array.isArray(deadlines)) return 0;
   const now = Date.now();
   const oneDayMs = 24 * 60 * 60 * 1000;
 
@@ -213,6 +321,7 @@ function formatOffsetLabel(offsetMinutes) {
 }
 
 async function processReminders(deadlines) {
+  if (!Array.isArray(deadlines)) return;
   const preferences = await ensurePreferences();
   if (!preferences.notificationsEnabled) {
     return;
@@ -317,15 +426,37 @@ export async function fetchDeadlines() {
     return;
   }
 
-  // Step 2: Fetch Events via API
+  // Step 2: Fetch Data via API
   try {
-    const rawEvents = await fetchCalendarEvents(session.sesskey);
+    const [rawEvents, courses] = await Promise.all([
+      fetchCalendarEvents(session.sesskey),
+      fetchCourses(session.sesskey)
+    ]);
+
+    // Fetch Forum IDs to find Announcements (cmid)
+    let announcementsMap = {};
+    if (Array.isArray(courses) && courses.length > 0) {
+      try {
+        const courseIds = courses.map(c => c.id).filter(Boolean);
+        announcementsMap = await fetchForumIds(session.sesskey, courseIds);
+      } catch (forumError) {
+        console.warn('[Spectrum Buddy] Non-critical error fetching forums:', forumError);
+      }
+    }
+
+    // Merge announcements cmid into courses
+    const coursesWithForums = (courses || []).map(course => ({
+      ...course,
+      announcementsCmid: announcementsMap[course.id] || null
+    }));
+
     const deadlines = processEvents(rawEvents);
     const urgentCount = countUrgentDeadlines(deadlines);
 
     await browser.storage.local.set({
       status: 'OK',
       deadlines,
+      courses: coursesWithForums,
       lastFetch: Date.now(),
     });
 
@@ -337,7 +468,7 @@ export async function fetchDeadlines() {
     console.error('[Spectrum Buddy] API Fetch failed:', error);
     await browser.storage.local.set({
       status: 'ERROR',
-      error: 'Failed to fetch Moodle events',
+      error: 'Failed to fetch Moodle data',
       lastFetch: Date.now(),
     });
     await updateBadge('ERROR');
